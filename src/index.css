@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  --color-uos-blue: #004EA2;
+  --color-uos-dark: #003366;
+  --color-uos-light: #E8F0FE;
+}
+
+body {
+  margin: 0;
+  font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
+}
