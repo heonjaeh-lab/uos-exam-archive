@@ -1,9 +1,11 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { fetchTimetable, TERM } from '../api/uos'
 import { parseClassNm, isConflicting } from '../utils/parseClassNm'
 import TimetableGrid from '../components/TimetableGrid'
 import CourseSearchPanel from '../components/CourseSearchPanel'
 import PortalLoginModal from '../components/PortalLoginModal'
+import { useUser, clearUser } from '../utils/user'
+import { loadTimetables, saveTimetables } from '../api/timetableStore'
 
 const STORAGE_KEY = 'uos-timetable-v1'
 
@@ -19,32 +21,62 @@ export default function TimetablePage() {
 
   // 시간표에 추가한 강의들 (학년/학기별로 분리 저장)
   const [savedTimetables, setSavedTimetables] = useState({})
+  const [syncStatus, setSyncStatus] = useState(null) // 'syncing' | 'saved' | null
+  const initialLoadDone = useRef(false)
 
   // 포털 로그인 모달
   const [portalModalOpen, setPortalModalOpen] = useState(false)
   const [importStatus, setImportStatus] = useState(null)
 
+  // 사용자 (학번)
+  const user = useUser()
+
   const currentKey = `${year}-${term}`
   const addedCourses = savedTimetables[currentKey] || []
 
-  // 페이지 진입 시 localStorage 복원
+  // 페이지 진입 시 시간표 로드
+  // - 로그인 사용자: Firestore에서 + localStorage fallback
+  // - 비로그인: localStorage만
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) setSavedTimetables(JSON.parse(saved))
-    } catch (e) {
-      console.warn('시간표 불러오기 실패', e)
-    }
-  }, [])
+    initialLoadDone.current = false
+    ;(async () => {
+      // localStorage 먼저 (즉시 표시)
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) setSavedTimetables(JSON.parse(saved))
+      } catch {}
 
-  // 시간표 변경 시 localStorage 저장
+      // 로그인되어 있으면 Firestore에서 최신 데이터 덮어쓰기
+      if (user?.studentId) {
+        setSyncStatus('syncing')
+        const remote = await loadTimetables(user.studentId)
+        // Firestore에 데이터가 있으면 그걸 사용 (없으면 localStorage 유지)
+        if (remote && Object.keys(remote).length > 0) {
+          setSavedTimetables(remote)
+        }
+        setSyncStatus('saved')
+        setTimeout(() => setSyncStatus(null), 1500)
+      }
+      initialLoadDone.current = true
+    })()
+  }, [user?.studentId])
+
+  // 시간표 변경 시 저장 (localStorage 즉시 + Firestore 디바운스)
   useEffect(() => {
+    if (!initialLoadDone.current) return
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(savedTimetables))
-    } catch (e) {
-      console.warn('시간표 저장 실패', e)
-    }
-  }, [savedTimetables])
+    } catch {}
+
+    if (!user?.studentId) return
+    const handle = setTimeout(async () => {
+      setSyncStatus('syncing')
+      const ok = await saveTimetables(user.studentId, savedTimetables, { name: user.name })
+      setSyncStatus(ok ? 'saved' : null)
+      setTimeout(() => setSyncStatus(null), 1500)
+    }, 800)
+    return () => clearTimeout(handle)
+  }, [savedTimetables, user?.studentId, user?.name])
 
   // 학년/학기 변경 시 강의 목록 다시 가져오기
   useEffect(() => {
@@ -187,6 +219,23 @@ export default function TimetablePage() {
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">시간표</h2>
+          {user?.studentId && (
+            <div className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+              <span>📌 학번 <strong className="text-gray-700">{user.studentId}</strong>로 자동 저장 중</span>
+              {syncStatus === 'syncing' && <span className="text-uos-blue">동기화 중...</span>}
+              {syncStatus === 'saved' && <span className="text-emerald-600">✓ 저장됨</span>}
+              <button
+                onClick={() => {
+                  if (window.confirm('로그아웃하면 다른 기기에서 시간표 동기화가 끊깁니다. 계속할까요?')) {
+                    clearUser()
+                  }
+                }}
+                className="text-gray-400 underline hover:text-gray-600 bg-transparent border-none cursor-pointer p-0 text-xs"
+              >
+                로그아웃
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 학년/학기 + 자동 가져오기 */}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { loginAndFetchTimetable, pingBackend } from '../api/uosPortal'
+import { saveUser } from '../utils/user'
 
 /**
  * 시립대 포털 로그인 모달
@@ -40,6 +41,8 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
     try {
       const result = await loginAndFetchTimetable(userId, password)
       if (result.success) {
+        // 로그인 성공 → 학번을 사용자 ID로 저장 (다음 방문 시 자동 인식)
+        saveUser({ studentId: userId })
         onSuccess?.(result.data)
         setPassword('') // 즉시 비밀번호 제거
         onClose?.()
