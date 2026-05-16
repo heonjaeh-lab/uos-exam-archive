@@ -52,9 +52,9 @@ function TopBar({ activePath, onOpenMobileNav }) {
   return (
     <header className="uos-topbar sticky top-0 z-30">
       {/* 유틸리티 바 (데스크탑만) */}
-      <div className="uos-topbar__utility hidden md:flex">
+      <div className="uos-topbar__utility uos-desktop-only">
         <span style={{ color: 'var(--c-text-4)' }}>자유전공학부 전용</span>
-        {UTILITY_LINKS.map((l, i) => (
+        {UTILITY_LINKS.map((l) => (
           <span key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
             <span className="dot" />
             <a href={l.href} target="_blank" rel="noopener noreferrer">{l.label}</a>
@@ -67,8 +67,8 @@ function TopBar({ activePath, onOpenMobileNav }) {
         {/* 모바일 햄버거 */}
         <button
           onClick={onOpenMobileNav}
-          className="md:hidden uos-btn uos-btn--ghost"
-          style={{ width: 36, padding: 0 }}
+          className="uos-btn uos-btn--ghost uos-mobile-only"
+          style={{ width: 36, padding: 0, flex: '0 0 auto' }}
           aria-label="메뉴 열기"
         >
           <Icon.menu />
@@ -77,7 +77,7 @@ function TopBar({ activePath, onOpenMobileNav }) {
         <Logo />
 
         {/* 데스크탑 네비 */}
-        <nav className="uos-nav hidden md:flex">
+        <nav className="uos-nav uos-desktop-only">
           {NAV_ITEMS.map((item) => {
             const isActive =
               item.to === activePath ||
@@ -95,21 +95,18 @@ function TopBar({ activePath, onOpenMobileNav }) {
         </nav>
 
         <div className="uos-topbar__right">
-          <div className="uos-search hidden lg:flex" style={{ width: 240 }}>
+          <div className="uos-search uos-desktop-only" style={{ width: 200 }}>
             <Icon.search />
-            <input placeholder="과목 · 학식 · 자료 검색" />
-            <button className="uos-search__btn" aria-label="검색">
-              <Icon.chevR cls="uos-icon--sm" />
-            </button>
+            <input placeholder="과목 · 학식 검색" />
           </div>
-          <button className="uos-btn uos-btn--ghost" style={{ width: 36, padding: 0 }} aria-label="알림">
+          <button className="uos-btn uos-btn--ghost" style={{ width: 36, padding: 0, flex: '0 0 auto' }} aria-label="알림">
             <Icon.bell />
           </button>
-          <div className="hidden sm:flex" style={{ alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--c-line)', marginLeft: 4 }}>
+          <div className="uos-desktop-only" style={{ alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--c-line)', marginLeft: 4 }}>
             <div className="uos-avatar">하헌</div>
             <div style={{ lineHeight: 1.2 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>하헌재</div>
-              <div style={{ fontSize: 11, color: 'var(--c-text-3)' }}>자유전공학부 · 25학번</div>
+              <div style={{ fontSize: 11, color: 'var(--c-text-3)' }}>자유전공 · 25학번</div>
             </div>
           </div>
         </div>

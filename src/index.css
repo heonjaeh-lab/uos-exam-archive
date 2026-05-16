@@ -326,16 +326,29 @@ body {
 .uos-pagi button:disabled:hover { background: transparent; }
 
 /* ──────────────────────────────────────────────────────────────
+   반응형 display 유틸리티 (Tailwind hidden 보다 우선순위 높게)
+────────────────────────────────────────────────────────────── */
+.uos-desktop-only { display: none !important; }
+.uos-mobile-only { display: flex !important; }
+@media (min-width: 768px) {
+  .uos-desktop-only { display: flex !important; }
+  .uos-mobile-only { display: none !important; }
+}
+
+/* ──────────────────────────────────────────────────────────────
    모바일 반응형 - 글씨 깨짐 방지
 ────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .uos-topbar__main {
-    padding: 0 16px;
-    gap: 16px;
+    padding: 0 12px;
+    gap: 10px;
     height: 56px;
   }
-  .uos-logo__type strong { font-size: 14px; }
-  .uos-logo__type span { font-size: 9.5px; }
+  .uos-logo__mark { width: 28px; height: 28px; font-size: 11px; }
+  .uos-logo__type strong { font-size: 13px; }
+  .uos-logo__type span { font-size: 9px; }
+  .uos-logo__type strong > span { display: none; } /* "·자유전공학부" 부분 모바일에서 숨김 */
+
   .uos-card__hd {
     padding: 12px 14px;
     flex-wrap: wrap;
