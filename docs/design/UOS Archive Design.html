@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>uos 아카이브 · 디자인 시안</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="shared.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="screens-1.jsx"></script>
+  <script type="text/babel" src="screens-2.jsx"></script>
+  <script type="text/babel" src="screens-3.jsx"></script>
+  <script type="text/babel" src="screens-4.jsx"></script>
+
+  <script type="text/babel" data-presets="env,react">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "primary": "#1c7ed6"
+    }/*EDITMODE-END*/;
+
+    // Each palette: [base, dark-600, dark-700, light-50, light-100]
+    const PALETTE_OPTIONS = [
+      ['#1c7ed6', '#1971c2', '#1864ab', '#e7f5ff', '#d0ebff'], // 스카이 (기본)
+      ['#2563eb', '#1d4ed8', '#1e40af', '#eef4ff', '#dbe7fe'], // 사파이어
+      ['#0ca678', '#099268', '#087f5b', '#e6fcf5', '#c3fae8'], // 딥 그린
+      ['#4c6ef5', '#4263eb', '#3b5bdb', '#eef2ff', '#dbe4ff'], // 인디고
+      ['#475569', '#334155', '#1e293b', '#f1f5f9', '#e2e8f0'], // 슬레이트
+      ['#c2255c', '#a61e4d', '#862e44', '#fff0f6', '#ffdeeb'], // 크림슨
+    ];
+
+    function applyPalette(hero) {
+      const p = PALETTE_OPTIONS.find(arr => arr[0].toLowerCase() === String(hero).toLowerCase()) || PALETTE_OPTIONS[0];
+      const r = document.documentElement.style;
+      r.setProperty('--c-primary', p[0]);
+      r.setProperty('--c-primary-600', p[1]);
+      r.setProperty('--c-primary-700', p[2]);
+      r.setProperty('--c-primary-50', p[3]);
+      r.setProperty('--c-primary-100', p[4]);
+    }
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+      React.useEffect(() => { applyPalette(tweaks.primary); }, [tweaks.primary]);
+
+      return (
+        <>
+          <DesignCanvas
+            title="uos 아카이브"
+            subtitle="자유전공학부 1학년 · 시간표 · 학식 · 기출 자료 · 디자인 시안 v0.2"
+          >
+            <DCSection
+              id="entry"
+              title="진입 화면"
+              subtitle="로그인 후 메인까지의 핵심 동선."
+            >
+              <DCArtboard id="login" label="01 · 로그인" width={1280} height={820}>
+                <ScreenLogin/>
+              </DCArtboard>
+              <DCArtboard id="home" label="02 · 홈" width={1280} height={1280}>
+                <ScreenHome/>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection
+              id="daily"
+              title="매일 쓰는 화면"
+              subtitle="시간표와 학식 — 1학년이 가장 자주 들어오는 두 화면."
+            >
+              <DCArtboard id="timetable" label="03 · 시간표" width={1280} height={920}>
+                <ScreenTimetable/>
+              </DCArtboard>
+              <DCArtboard id="meal" label="04 · 학식" width={1280} height={1020}>
+                <ScreenCafeteria/>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection
+              id="archive"
+              title="기출·자료"
+              subtitle="과목 목록 → 상세 → 검색 → 업로드."
+            >
+              <DCArtboard id="course-list" label="05 · 과목 목록" width={1280} height={1040}>
+                <ScreenCourseList/>
+              </DCArtboard>
+              <DCArtboard id="exam-detail" label="06 · 기출문제 상세" width={1100} height={1180}>
+                <ScreenExamDetail/>
+              </DCArtboard>
+              <DCArtboard id="search-result" label="07 · 검색 결과" width={1100} height={1120}>
+                <ScreenSearch/>
+              </DCArtboard>
+              <DCArtboard id="upload" label="08 · 업로드" width={1000} height={1140}>
+                <ScreenUpload/>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection
+              id="me"
+              title="내 페이지"
+              subtitle="내가 올린 자료·북마크·다운로드 기록."
+            >
+              <DCArtboard id="mypage" label="09 · 마이페이지" width={1100} height={780}>
+                <ScreenMyPage/>
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel>
+            <TweakSection label="메인 컬러">
+              <TweakColor
+                label="Primary"
+                value={tweaks.primary}
+                onChange={v => setTweak('primary', Array.isArray(v) ? v[0] : v)}
+                options={PALETTE_OPTIONS}
+              />
+              <div style={{fontSize:11.5, color:'#64748b', lineHeight:1.5, marginTop:8}}>
+                스카이(기본) · 사파이어 · 딥그린 · 인디고 · 슬레이트 · 크림슨.
+                선택한 컬러가 9개 화면 전체에 즉시 반영돼요.
+              </div>
+            </TweakSection>
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

@@ -1,196 +1,217 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 
-const HomeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-    <polyline points="9 22 9 12 15 12 15 22" />
-  </svg>
+/* ─── Icons (시안 그대로) ───────────────────────────────────── */
+const SVG = ({ children, cls = '' }) => (
+  <svg viewBox="0 0 24 24" className={`uos-icon ${cls}`}>{children}</svg>
 )
-
-const InfoIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="16" x2="12" y2="12" />
-    <line x1="12" y1="8" x2="12.01" y2="8" />
-  </svg>
-)
-
-const MenuIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="18" x2="21" y2="18" />
-  </svg>
-)
-
-const AiIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
-)
-
-const ExternalLinkIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-    <polyline points="15 3 21 3 21 9" />
-    <line x1="10" y1="14" x2="21" y2="3" />
-  </svg>
-)
-
-const CalendarIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-    <line x1="16" y1="2" x2="16" y2="6" />
-    <line x1="8" y1="2" x2="8" y2="6" />
-    <line x1="3" y1="10" x2="21" y2="10" />
-  </svg>
-)
-
-const FoodIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z" />
-    <line x1="6" y1="1" x2="6" y2="4" />
-    <line x1="10" y1="1" x2="10" y2="4" />
-    <line x1="14" y1="1" x2="14" y2="4" />
-  </svg>
-)
-
-const BellIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-  </svg>
-)
-
-const navItems = [
-  { to: '/', label: '홈', Icon: HomeIcon },
-  { to: '/timetable', label: '시간표', Icon: CalendarIcon },
-  { to: '/cafeteria', label: '학식', Icon: FoodIcon },
-  { to: '/notice', label: '공지', Icon: BellIcon },
-  { to: '/ai', label: 'AI튜터', Icon: AiIcon },
-  { to: '/about', label: '소개', Icon: InfoIcon },
-]
-
-const PAGE_TITLES = {
-  '/': '전체 족보',
-  '/timetable': '시간표',
-  '/cafeteria': '학식',
-  '/notice': '학부 공지',
-  '/ai': 'AI튜터',
-  '/about': '소개',
+const Icon = {
+  search: (p) => <SVG {...p}><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></SVG>,
+  bell:   (p) => <SVG {...p}><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/></SVG>,
+  menu:   (p) => <SVG {...p}><path d="M3 6h18M3 12h18M3 18h18"/></SVG>,
+  x:      (p) => <SVG {...p}><path d="M6 6l12 12M18 6L6 18"/></SVG>,
+  chevR:  (p) => <SVG {...p}><polyline points="9 6 15 12 9 18"/></SVG>,
 }
 
-const externalLinks = [
-  { href: 'https://aichat.uos.ac.kr/auth', label: 'AI Chat' },
-  { href: 'https://uclass.uos.ac.kr/', label: '강의실' },
-  { href: 'https://uos.copykiller.com/', label: '카피킬러' },
+const NAV_ITEMS = [
+  { to: '/', label: '홈' },
+  { to: '/timetable', label: '시간표' },
+  { to: '/cafeteria', label: '학식' },
+  { to: '/notice', label: '공지' },
+  { to: '/', archive: true, label: '기출·자료' }, // 임시 - 홈으로 (추후 archive 페이지 추가)
+  { to: '/ai', label: 'AI튜터' },
 ]
 
-export default function Layout({ children }) {
-  const location = useLocation()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const basePath = import.meta.env.BASE_URL
+const UTILITY_LINKS = [
+  { label: '학사정보', href: 'https://wise.uos.ac.kr/' },
+  { label: 'e-Class',  href: 'https://uclass.uos.ac.kr/' },
+  { label: '도서관',   href: 'https://library.uos.ac.kr/' },
+  { label: '포털',     href: 'https://portal.uos.ac.kr/' },
+]
 
+/* ─── Logo ───────────────────────────────────────────────────── */
+function Logo() {
   return (
-    <div className="min-h-screen bg-[#F5F6FA] flex">
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <Link className="uos-logo" to="/">
+      <div className="uos-logo__mark">자전</div>
+      <div className="uos-logo__type">
+        <strong>
+          UOS Archive
+          <span style={{ fontWeight: 500, color: 'var(--c-text-3)', marginLeft: 6 }}>
+            · 자유전공학부
+          </span>
+        </strong>
+        <span>UOS FREE MAJOR · ARCHIVE</span>
+      </div>
+    </Link>
+  )
+}
 
-      {/* Sidebar */}
-      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-[72px] bg-[#0B1526] flex flex-col items-center py-5 z-50 transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        {/* Logo */}
-        <Link to="/" className="mb-8 no-underline" onClick={() => setSidebarOpen(false)}>
-          <img
-            src={`${basePath}logo.png`}
-            alt="Liberal & Cross"
-            className="w-11 h-11 rounded-full bg-white p-0.5"
-          />
-        </Link>
+/* ─── TopBar ─────────────────────────────────────────────────── */
+function TopBar({ activePath, onOpenMobileNav }) {
+  return (
+    <header className="uos-topbar sticky top-0 z-30">
+      {/* 유틸리티 바 (데스크탑만) */}
+      <div className="uos-topbar__utility hidden md:flex">
+        <span style={{ color: 'var(--c-text-4)' }}>자유전공학부 전용</span>
+        {UTILITY_LINKS.map((l, i) => (
+          <span key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <span className="dot" />
+            <a href={l.href} target="_blank" rel="noopener noreferrer">{l.label}</a>
+          </span>
+        ))}
+      </div>
 
-        {/* Nav */}
-        <nav className="flex flex-col gap-1 flex-1 w-full px-2">
-          {navItems.map(({ to, label, Icon }) => {
-            const isActive = location.pathname === to
+      {/* 메인 바 */}
+      <div className="uos-topbar__main">
+        {/* 모바일 햄버거 */}
+        <button
+          onClick={onOpenMobileNav}
+          className="md:hidden uos-btn uos-btn--ghost"
+          style={{ width: 36, padding: 0 }}
+          aria-label="메뉴 열기"
+        >
+          <Icon.menu />
+        </button>
+
+        <Logo />
+
+        {/* 데스크탑 네비 */}
+        <nav className="uos-nav hidden md:flex">
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              item.to === activePath ||
+              (item.to !== '/' && activePath.startsWith(item.to))
             return (
               <Link
-                key={to}
-                to={to}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex flex-col items-center gap-1 py-3 rounded-xl no-underline transition-all ${
-                  isActive
-                    ? 'bg-white/15 text-white'
-                    : 'text-gray-500 hover:bg-white/8 hover:text-gray-300'
-                }`}
+                key={item.label}
+                to={item.to}
+                className={`uos-nav__item ${isActive ? 'uos-nav__item--active' : ''}`}
               >
-                <Icon />
-                <span className="text-[10px] font-medium tracking-wide">{label}</span>
+                {item.label}
               </Link>
             )
           })}
-
-          <div className="border-t border-white/10 my-2" />
-
-          {externalLinks.map(({ href, label }) => (
-            <a
-              key={href}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setSidebarOpen(false)}
-              className="flex flex-col items-center gap-1 py-3 rounded-xl no-underline transition-all text-gray-500 hover:bg-white/8 hover:text-gray-300"
-            >
-              <ExternalLinkIcon />
-              <span className="text-[10px] font-medium tracking-wide">{label}</span>
-            </a>
-          ))}
         </nav>
 
-        {/* Footer */}
-        <div className="text-[9px] text-gray-600 text-center leading-tight tracking-wider">
-          <p className="m-0">HEONJAE</p>
-        </div>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        {/* Top bar */}
-        <header className="bg-white border-b border-gray-100 sticky top-0 z-30">
-          <div className="px-6 py-3.5 flex items-center gap-4">
-            <button
-              className="lg:hidden text-gray-400 bg-transparent border-none cursor-pointer p-0.5"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <MenuIcon />
+        <div className="uos-topbar__right">
+          <div className="uos-search hidden lg:flex" style={{ width: 240 }}>
+            <Icon.search />
+            <input placeholder="과목 · 학식 · 자료 검색" />
+            <button className="uos-search__btn" aria-label="검색">
+              <Icon.chevR cls="uos-icon--sm" />
             </button>
-            <nav className="flex items-center gap-2 text-sm text-gray-400">
-              <Link to="/" className="no-underline text-gray-400 hover:text-uos-blue transition-colors">홈</Link>
-              <span className="text-gray-300">/</span>
-              <span className="text-gray-700 font-medium">
-                {PAGE_TITLES[location.pathname] || (location.pathname.startsWith('/subject/') ? '과목별 보기' : '페이지')}
-              </span>
-            </nav>
           </div>
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 px-6 py-8 max-w-6xl w-full mx-auto">
-          {children}
-        </main>
-
-        {/* Bottom footer */}
-        <footer className="border-t border-gray-100 bg-white py-4 px-6">
-          <p className="m-0 text-center text-xs text-gray-400">
-            서울시립대학교 자유융합대학 족보 아카이브 &middot; made by Heonjae Ha
-          </p>
-        </footer>
+          <button className="uos-btn uos-btn--ghost" style={{ width: 36, padding: 0 }} aria-label="알림">
+            <Icon.bell />
+          </button>
+          <div className="hidden sm:flex" style={{ alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--c-line)', marginLeft: 4 }}>
+            <div className="uos-avatar">하헌</div>
+            <div style={{ lineHeight: 1.2 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>하헌재</div>
+              <div style={{ fontSize: 11, color: 'var(--c-text-3)' }}>자유전공학부 · 25학번</div>
+            </div>
+          </div>
+        </div>
       </div>
+    </header>
+  )
+}
+
+/* ─── Mobile Nav Drawer ──────────────────────────────────────── */
+function MobileNav({ open, onClose, activePath }) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 md:hidden" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-xl flex flex-col"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <Logo />
+          <button onClick={onClose} className="uos-btn uos-btn--ghost" style={{ width: 36, padding: 0 }}>
+            <Icon.x />
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto py-2">
+          {NAV_ITEMS.map((item) => {
+            const isActive = item.to === activePath
+            return (
+              <Link
+                key={item.label}
+                to={item.to}
+                onClick={onClose}
+                className="block px-5 py-3 text-sm font-medium no-underline transition-colors"
+                style={{
+                  color: isActive ? 'var(--c-primary)' : 'var(--c-text)',
+                  background: isActive ? 'var(--c-primary-50)' : 'transparent',
+                  borderLeft: isActive ? '3px solid var(--c-primary)' : '3px solid transparent',
+                }}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+        <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500 space-y-1.5">
+          {UTILITY_LINKS.map((l) => (
+            <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className="block no-underline text-gray-500 hover:text-uos-blue">
+              {l.label} ↗
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Footer ─────────────────────────────────────────────────── */
+function Footer() {
+  return (
+    <footer
+      style={{
+        background: '#0f172a',
+        color: '#94a3b8',
+        padding: '28px 32px',
+        fontSize: 12,
+        borderTop: '1px solid #1e293b',
+      }}
+    >
+      <div className="max-w-[1400px] mx-auto flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 6, background: '#1e293b', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 10, color: '#cbd5e1' }}>자전</div>
+          <strong style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 600 }}>UOS Archive</strong>
+        </div>
+        <span style={{ color: '#475569' }}>·</span>
+        <span>자유전공학부 학생 운영 · 비공식 프로젝트</span>
+        <span style={{ color: '#475569' }} className="hidden sm:inline">·</span>
+        <a href="https://github.com/heonjaeh-lab/uos-exam-archive" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+          GitHub
+        </a>
+        <div style={{ marginLeft: 'auto', fontSize: 11, color: '#64748b' }}>
+          © 2026 made by 하헌재
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+/* ─── Layout (default export) ────────────────────────────────── */
+export default function Layout({ children }) {
+  const location = useLocation()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-bg-soft)' }}>
+      <TopBar activePath={location.pathname} onOpenMobileNav={() => setMobileNavOpen(true)} />
+      <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} activePath={location.pathname} />
+
+      <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {children}
+      </main>
+
+      <Footer />
     </div>
   )
 }
