@@ -51,4 +51,37 @@ router.get('/cafeteria/restaurants', (req, res) => {
   res.json({ restaurants: RESTAURANTS })
 })
 
+/**
+ * GET /api/cafeteria/debug
+ * 시립대 페이지 raw 확인 (디버그용)
+ */
+router.get('/cafeteria/debug', async (req, res) => {
+  try {
+    const url = 'https://www.uos.ac.kr/food/placeList.do?rstcde=020&menuid=2000005006002000000'
+    const r = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'ko-KR,ko;q=0.9',
+      },
+    })
+    const html = await r.text()
+    const has주간별 = html.includes('주간별')
+    const has월 = html.includes('월)')
+    const tableMatches = (html.match(/<caption>/g) || []).length
+    res.json({
+      status: r.status,
+      contentType: r.headers.get('content-type'),
+      htmlLength: html.length,
+      has주간별,
+      has월,
+      tableCount: tableMatches,
+      htmlSnippet: html.slice(0, 300),
+      weeklyTableSnippet: has주간별 ? html.slice(html.indexOf('주간별'), html.indexOf('주간별') + 1500) : null,
+    })
+  } catch (e) {
+    res.status(500).json({ error: e.message, stack: e.stack })
+  }
+})
+
 export default router
