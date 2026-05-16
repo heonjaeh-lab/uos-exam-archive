@@ -6,6 +6,7 @@ import AboutPage from './pages/AboutPage'
 import AiPage from './pages/AiPage'
 import TimetablePage from './pages/TimetablePage'
 import CafeteriaPage from './pages/CafeteriaPage'
+import NoticePage from './pages/NoticePage'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/timetable" element={<TimetablePage />} />
         <Route path="/cafeteria" element={<CafeteriaPage />} />
+        <Route path="/notice" element={<NoticePage />} />
         <Route path="/subject/:subjectName" element={<SubjectPage />} />
         <Route path="/ai" element={<AiPage />} />
         <Route path="/about" element={<AboutPage />} />
