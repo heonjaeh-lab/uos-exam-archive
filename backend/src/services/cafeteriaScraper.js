@@ -81,60 +81,39 @@ async function fetchOneCafeteria(rstcde, targetMonth, targetDay) {
   }
 
   // 주간 테이블 파싱
+  // 시립대 페이지 구조: 한 tr = [날짜th, 조식th, 조식td, 중식th, 중식td, 석식th, 석식td] (7개 셀)
   const weeklyMeals = {}
+  const extractText = ($el) => {
+    return ($el.html() || '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
+      .trim()
+  }
+
   if (weeklyTable) {
     $(weeklyTable)
       .find('tbody tr')
       .each((_, tr) => {
         const cells = $(tr).find('th, td').toArray()
-        if (cells.length < 4) return
+        if (cells.length < 7) return
 
-        // 첫 번째 셀이 날짜
         const dateLabel = $(cells[0]).text().trim()
         const date = parseDateLabel(dateLabel)
         if (!date) return
 
-        // 나머지 셀들에서 조식/중식/석식 메뉴 추출
-        // 패턴: [날짜, "조식", 조식메뉴, "중식", 중식메뉴, "석식", 석식메뉴]
-        // 또는: [날짜, 조식메뉴, 중식메뉴, 석식메뉴] (라벨 없이)
-        const meals = { breakfast: null, lunch: null, dinner: null }
+        // 인덱스 기반 추출 (2=조식, 4=중식, 6=석식)
+        const breakfast = extractText($(cells[2]))
+        const lunch = extractText($(cells[4]))
+        const dinner = extractText($(cells[6]))
 
-        // 셀 순회하면서 텍스트가 있는 td만 추출
-        const dataCells = cells
-          .slice(1)
-          .map((c) => {
-            const text = $(c)
-              .html()
-              ?.replace(/<br\s*\/?>/gi, '\n')
-              .replace(/<[^>]+>/g, '')
-              .replace(/&nbsp;/g, ' ')
-              .trim()
-            return { tagName: c.tagName, text: text || '' }
-          })
-
-        // 라벨(th)을 기준으로 메뉴 매칭
-        let currentMeal = null
-        dataCells.forEach((c) => {
-          const txt = c.text.trim()
-          if (/^조식$/.test(txt)) currentMeal = 'breakfast'
-          else if (/^중식$/.test(txt)) currentMeal = 'lunch'
-          else if (/^석식$/.test(txt)) currentMeal = 'dinner'
-          else if (currentMeal && txt && !/^\s*$/.test(txt)) {
-            meals[currentMeal] = (meals[currentMeal] ? meals[currentMeal] + '\n' : '') + txt
-            currentMeal = null
-          }
-        })
-
-        // 라벨 없이 순서대로 들어간 경우 fallback
-        if (!meals.breakfast && !meals.lunch && !meals.dinner) {
-          const onlyData = dataCells.filter((c) => c.tagName === 'td' && c.text)
-          if (onlyData[0]) meals.breakfast = onlyData[0].text
-          if (onlyData[1]) meals.lunch = onlyData[1].text
-          if (onlyData[2]) meals.dinner = onlyData[2].text
+        weeklyMeals[`${date.month}-${date.day}`] = {
+          breakfast: breakfast || null,
+          lunch: lunch || null,
+          dinner: dinner || null,
         }
-
-        const key = `${date.month}-${date.day}`
-        weeklyMeals[key] = meals
       })
   }
 

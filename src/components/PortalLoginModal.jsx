@@ -304,26 +304,6 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
                 )}
               </button>
 
-              {/* 보안 안내 */}
-              <div
-                style={{
-                  fontSize: 12,
-                  color: 'var(--c-text-3)',
-                  marginTop: 12,
-                  lineHeight: 1.6,
-                  padding: '12px 14px',
-                  background: 'var(--c-primary-50)',
-                  borderRadius: 8,
-                  borderLeft: '3px solid var(--c-primary)',
-                }}
-              >
-                <strong style={{ color: 'var(--c-primary-700)' }}>🔒 비밀번호는 저장되지 않아요</strong>
-                <ul style={{ margin: '6px 0 0', paddingLeft: 18, listStyle: 'disc' }}>
-                  <li>시립대 포털 로그인에만 일회성 사용</li>
-                  <li>요청 후 메모리에서 즉시 삭제</li>
-                  <li>학번만 저장 → 다음 방문 시 시간표 자동 로드</li>
-                </ul>
-              </div>
             </form>
 
             <p
