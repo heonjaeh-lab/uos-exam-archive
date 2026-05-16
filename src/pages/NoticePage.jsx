@@ -8,11 +8,11 @@ const BOARDS = [
 
 const CATEGORIES = ['전체', '학사', '일반', '장학']
 
-const CATEGORY_COLORS = {
-  학사: 'bg-blue-50 text-blue-700 border-blue-200',
-  일반: 'bg-gray-50 text-gray-700 border-gray-200',
-  장학: 'bg-amber-50 text-amber-700 border-amber-200',
-  기타: 'bg-gray-50 text-gray-600 border-gray-200',
+const CATEGORY_TAG = {
+  학사: 'uos-tag--primary',
+  일반: '',
+  장학: 'uos-tag--warning',
+  기타: 'uos-tag--outline',
 }
 
 function daysAgo(dateStr) {
@@ -23,7 +23,7 @@ function daysAgo(dateStr) {
   if (diff === 1) return '어제'
   if (diff < 7) return `${diff}일 전`
   if (diff < 30) return `${Math.floor(diff / 7)}주 전`
-  return dateStr
+  return dateStr.slice(5)
 }
 
 export default function NoticePage() {
@@ -38,18 +38,10 @@ export default function NoticePage() {
     setLoading(true)
     setError(null)
     fetchNoticeBoard(board)
-      .then((res) => {
-        if (!cancelled) setData(res)
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message)
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
+      .then((res) => !cancelled && setData(res))
+      .catch((err) => !cancelled && setError(err.message))
+      .finally(() => !cancelled && setLoading(false))
+    return () => { cancelled = true }
   }, [board])
 
   const filteredNotices = useMemo(() => {
@@ -62,123 +54,147 @@ export default function NoticePage() {
   const regular = filteredNotices.filter((n) => !n.pinned)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">학부 공지</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          자유전공학부 공지사항 - 실시간 업데이트
-        </p>
-      </div>
+    <div style={{ margin: '-24px -16px 0' }}>
+      {/* 헤더 */}
+      <section style={{ background: '#fff', borderBottom: '1px solid var(--c-line)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 16px 16px' }}>
+          <div className="uos-crumbs" style={{ marginBottom: 10 }}>
+            <a href="#/">홈</a>
+            <span className="uos-crumbs__sep">›</span>
+            <span className="uos-crumbs__current">학부 공지</span>
+          </div>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-0.02em' }}>학부 공지</h1>
+          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--c-text-3)' }}>
+            자유전공학부 공지사항 · 실시간 업데이트
+          </p>
 
-      {/* 게시판 탭 */}
-      <div className="flex gap-2">
-        {BOARDS.map((b) => (
-          <button
-            key={b.key}
-            onClick={() => setBoard(b.key)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all cursor-pointer ${
-              board === b.key
-                ? 'bg-uos-blue text-white border-uos-blue'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            {b.label}
-          </button>
-        ))}
-      </div>
-
-      {/* 카테고리 필터 */}
-      <div className="flex gap-1.5 flex-wrap">
-        {CATEGORIES.map((c) => (
-          <button
-            key={c}
-            onClick={() => setCategory(c)}
-            className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer ${
-              category === c
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
-
-      {loading && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-sm text-gray-500">
-          공지 불러오는 중...
+          {/* 게시판 탭 */}
+          <div style={{ display: 'flex', gap: 4, marginTop: 18, overflow: 'auto' }}>
+            {BOARDS.map((b) => (
+              <button
+                key={b.key}
+                onClick={() => setBoard(b.key)}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: board === b.key ? 700 : 500,
+                  color: board === b.key ? '#fff' : 'var(--c-text-2)',
+                  background: board === b.key ? 'var(--c-primary)' : 'var(--c-bg-soft)',
+                  border: 0,
+                  borderRadius: 20,
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                }}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+      </section>
 
-      {error && (
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-sm text-rose-700">
-          {error}
+      {/* 본문 */}
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* 카테고리 필터 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategory(c)}
+                className="uos-btn uos-btn--sm"
+                style={{
+                  background: category === c ? 'var(--c-text)' : '#fff',
+                  color: category === c ? '#fff' : 'var(--c-text-2)',
+                  borderColor: category === c ? 'var(--c-text)' : 'var(--c-line-strong)',
+                }}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--c-text-3)' }}>
+            <strong style={{ color: 'var(--c-text)' }} className="uos-tabular">
+              {filteredNotices.length}
+            </strong>
+            개 공지
+          </div>
         </div>
-      )}
 
-      {!loading && !error && data && (
-        <>
-          {/* 고정 공지 */}
-          {pinned.length > 0 && (
-            <div className="bg-amber-50/40 border border-amber-200 rounded-2xl overflow-hidden">
-              <div className="px-4 py-2 text-xs font-semibold text-amber-800 border-b border-amber-200 bg-amber-50">
-                📌 고정 공지
-              </div>
-              <div className="divide-y divide-amber-100">
-                {pinned.map((n) => (
-                  <NoticeRow key={n.id || n.title} notice={n} />
-                ))}
-              </div>
+        {loading && (
+          <div className="uos-card">
+            <div className="uos-card__bd" style={{ textAlign: 'center', padding: 30, color: 'var(--c-text-3)' }}>
+              공지 불러오는 중...
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 일반 공지 */}
-          {regular.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <div className="divide-y divide-gray-100">
-                {regular.map((n) => (
-                  <NoticeRow key={n.id || n.title} notice={n} />
-                ))}
-              </div>
+        {error && (
+          <div className="uos-card" style={{ borderColor: '#fcc' }}>
+            <div className="uos-card__bd" style={{ color: 'var(--c-danger)', fontSize: 13 }}>
+              <strong>로딩 실패</strong> — {error}
             </div>
-          )}
+          </div>
+        )}
 
-          {filteredNotices.length === 0 && (
-            <div className="text-center py-12 text-gray-400 text-sm">
-              해당 분류의 공지가 없어요
-            </div>
-          )}
-        </>
-      )}
+        {!loading && !error && (
+          <>
+            {/* 고정 공지 */}
+            {pinned.length > 0 && (
+              <div className="uos-card" style={{ background: '#fffaf0', borderColor: '#ffe7ba' }}>
+                <div className="uos-card__hd" style={{ background: '#fff4e6', borderBottom: '1px solid #ffe7ba' }}>
+                  <h3 style={{ fontSize: 13, color: '#c44a06' }}>📌 고정 공지</h3>
+                </div>
+                <div className="uos-list">
+                  {pinned.map((n) => <NoticeRow key={n.id || n.title} notice={n} />)}
+                </div>
+              </div>
+            )}
+
+            {/* 일반 공지 */}
+            {regular.length > 0 && (
+              <div className="uos-card">
+                <div className="uos-list">
+                  {regular.map((n) => <NoticeRow key={n.id || n.title} notice={n} />)}
+                </div>
+              </div>
+            )}
+
+            {filteredNotices.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--c-text-3)', fontSize: 13 }}>
+                해당 분류의 공지가 없어요
+              </div>
+            )}
+          </>
+        )}
+      </main>
     </div>
   )
 }
 
 function NoticeRow({ notice }) {
-  const categoryClass = CATEGORY_COLORS[notice.category] || CATEGORY_COLORS.기타
+  const tagCls = CATEGORY_TAG[notice.category] || CATEGORY_TAG.기타
   return (
     <a
       href={notice.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors no-underline"
+      style={{ textDecoration: 'none', color: 'inherit' }}
     >
-      <span
-        className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${categoryClass}`}
+      <div
+        className="uos-list__row"
+        style={{ gridTemplateColumns: '48px 1fr auto', cursor: 'pointer' }}
       >
-        {notice.category}
-      </span>
-      <span className="flex-1 min-w-0 text-sm text-gray-900 truncate">
-        {notice.title}
-      </span>
-      <span className="shrink-0 text-xs text-gray-400 hidden sm:block">
-        {daysAgo(notice.date)}
-      </span>
-      {notice.views !== null && (
-        <span className="shrink-0 text-xs text-gray-300 hidden md:block">
-          {notice.views}회
+        <span className={`uos-tag ${tagCls}`} style={{ justifyContent: 'center' }}>
+          {notice.category}
         </span>
-      )}
+        <span className="title uos-truncate" style={{ fontSize: 13.5 }}>
+          {notice.title}
+        </span>
+        <span style={{ fontSize: 11.5, color: 'var(--c-text-4)' }} className="uos-tabular">
+          {daysAgo(notice.date)}
+        </span>
+      </div>
     </a>
   )
 }
