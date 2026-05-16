@@ -45,6 +45,21 @@ export default function AboutPage() {
             </li>
           </ul>
         </section>
+
+        <section className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">도움을 준 사람들</h3>
+          <div className="flex flex-wrap gap-2">
+            <span className="text-sm bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg border border-gray-100">장재원 (25)</span>
+            <span className="text-sm bg-gray-50 text-gray-600 px-3 py-1.5 rounded-lg border border-gray-100">윤*석 (25)</span>
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">문의</h3>
+          <p className="text-sm text-gray-500">
+            오류 및 문의사항은 인스타그램 <a href="https://instagram.com/je_noah" target="_blank" rel="noopener noreferrer" className="text-uos-blue font-medium no-underline hover:underline">@je_noah</a>로 보내주세요.
+          </p>
+        </section>
       </div>
     </div>
   )

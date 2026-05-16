@@ -1,0 +1,31 @@
+# Render.com 배포 설정
+# https://render.com/docs/yaml-spec
+#
+# 사용 방법:
+#   1. https://render.com 가입
+#   2. New + → Blueprint → 이 레포 연결
+#   3. backend/render.yaml 자동 감지 → Apply
+
+services:
+  - type: web
+    name: uos-archive-backend
+    runtime: docker
+    plan: free
+    region: singapore # 한국에서 가장 가까움
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+
+    # 헬스체크 (15분 sleep 방지용)
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: ALLOWED_ORIGINS
+        # 본인 GitHub Pages URL로 수정하세요
+        value: https://haheonjae.github.io,http://localhost:5173,http://localhost:5174
+
+    # 무료 플랜은 15분 idle 후 sleep됨. 깨우는 데 30초 정도 걸림.
+    # 자주 사용하면 UptimeRobot 같은 외부 서비스로 5분마다 ping 설정 추천.

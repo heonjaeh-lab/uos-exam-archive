@@ -1,0 +1,21 @@
+{
+  "name": "UOS Archive",
+  "short_name": "UOS Archive",
+  "description": "서울시립대학교 자유전공학부 족보 아카이브",
+  "start_url": "/uos-exam-archive/",
+  "display": "standalone",
+  "background_color": "#F5F6FA",
+  "theme_color": "#0B1526",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

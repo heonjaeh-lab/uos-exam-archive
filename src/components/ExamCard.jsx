@@ -47,7 +47,7 @@ export default function ExamCard({ exam }) {
         {exam.professor && (
           <p className="m-0">{exam.professor} 교수</p>
         )}
-        <p className="m-0">{exam.tags?.includes('기출문제') ? `${exam.year}년 ` : ''}{exam.semester}학기</p>
+        <p className="m-0">{exam.tags?.includes('기출문제') ? `${exam.year}년 ` : ''}{exam.semester === 0 ? '1학년' : `${exam.semester}학기`}</p>
       </div>
 
       <div className="flex flex-wrap gap-1.5 mt-3">
@@ -61,7 +61,7 @@ export default function ExamCard({ exam }) {
       <div className="mt-4 pt-3 border-t border-gray-50 space-y-2">
         {hasFile ? (
           <a
-            href={`${basePath}exams/${exam.fileName}`}
+            href={exam.fileName.startsWith('http') ? exam.fileName : `${basePath}exams/${exam.fileName}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full inline-flex items-center justify-center gap-1.5 bg-[#0B1526] text-white text-sm font-medium py-2.5 rounded-xl no-underline hover:bg-[#1a2744] transition-colors"

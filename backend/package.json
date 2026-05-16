@@ -1,0 +1,21 @@
+{
+  "name": "uos-archive-backend",
+  "version": "1.0.0",
+  "description": "서울시립대 포털 자동 로그인 + 시간표 가져오기 백엔드",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "puppeteer": "^23.0.0",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
