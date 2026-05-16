@@ -4,7 +4,11 @@
  * 우리 백엔드(Render)가 시립대 학식 페이지를 크롤링해서 JSON으로 변환해줌.
  */
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+// 학식 크롤링은 한국 IP 필요 → Cloudflare Workers 우선, 없으면 백엔드
+const BACKEND_URL =
+  import.meta.env.VITE_CRAWLER_URL ||
+  import.meta.env.VITE_BACKEND_URL ||
+  'http://localhost:3001'
 
 /**
  * 모든 식당의 식단 가져오기
