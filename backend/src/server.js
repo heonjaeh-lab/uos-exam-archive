@@ -17,6 +17,10 @@ import noticeRouter from './routes/notice.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// Render는 프록시 뒤에서 실행되므로 X-Forwarded-For 헤더 신뢰
+// 이게 없으면 express-rate-limit가 ValidationError 발생 → 요청 통과 안 됨
+app.set('trust proxy', 1)
+
 // 허용된 origin (개발 + 프로덕션)
 const ALLOWED_ORIGINS = (
   process.env.ALLOWED_ORIGINS ||

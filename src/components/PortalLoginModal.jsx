@@ -107,14 +107,14 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
 
           <div
             style={{
-              fontSize: 12,
-              letterSpacing: '0.18em',
-              opacity: 0.85,
+              fontSize: 13,
+              opacity: 0.9,
               fontWeight: 500,
               position: 'relative',
+              letterSpacing: '-0.01em',
             }}
           >
-            UOS · FREE MAJOR · ARCHIVE
+            시립대 자유전공학부 학생을 위한 아카이브
           </div>
           <h1
             style={{
@@ -140,43 +140,8 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
               position: 'relative',
             }}
           >
-            시립대 자유전공학부 학생을 위한 학기 허브.<br />
             시간표·학식·기출자료를 한 자리에서.
           </p>
-
-          <div
-            style={{
-              marginTop: 'auto',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3,1fr)',
-              gap: 10,
-              position: 'relative',
-            }}
-          >
-            {[
-              { n: '171', l: '기출·자료' },
-              { n: '4', l: '식당 메뉴' },
-              { n: '실시간', l: '공지 업데이트' },
-            ].map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  background: 'rgba(255,255,255,0.10)',
-                  borderRadius: 10,
-                  padding: '12px 14px',
-                  backdropFilter: 'blur(4px)',
-                }}
-              >
-                <div
-                  style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}
-                  className="uos-tabular"
-                >
-                  {s.n}
-                </div>
-                <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* 우측 로그인 폼 */}
