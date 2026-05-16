@@ -187,9 +187,6 @@ export default function TimetablePage() {
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">시간표</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            시립대 OpenAPI 실시간 데이터로 만드는 내 시간표
-          </p>
         </div>
 
         {/* 학년/학기 + 자동 가져오기 */}

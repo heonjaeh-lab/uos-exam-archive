@@ -33,7 +33,7 @@ export default function ExamCard({ exam }) {
     <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-gray-200 hover:shadow-sm transition-all flex flex-col">
       <div className="flex items-start justify-between mb-3">
         <Link
-          to={`/subject/${encodeURIComponent(exam.subject)}`}
+          to={`/exam/${exam.id}`}
           className="text-[15px] font-semibold text-gray-900 no-underline hover:text-uos-blue transition-colors leading-snug"
         >
           {exam.title || exam.subject}
@@ -59,29 +59,25 @@ export default function ExamCard({ exam }) {
       </div>
 
       <div className="mt-4 pt-3 border-t border-gray-50 space-y-2">
-        {hasFile ? (
-          <a
-            href={exam.fileName.startsWith('http') ? exam.fileName : `${basePath}exams/${exam.fileName}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full inline-flex items-center justify-center gap-1.5 bg-[#0B1526] text-white text-sm font-medium py-2.5 rounded-xl no-underline hover:bg-[#1a2744] transition-colors"
+        {hasFile || hasAnswer ? (
+          <Link
+            to={`/exam/${exam.id}`}
+            className="w-full inline-flex items-center justify-center gap-1.5 bg-[#1c7ed6] text-white text-sm font-medium py-2.5 rounded-xl no-underline hover:bg-[#1971c2] transition-colors"
           >
             {label}
-          </a>
-        ) : !hasAnswer ? (
+          </Link>
+        ) : (
           <div className="w-full text-center text-sm text-gray-300 py-2">
             준비 중
           </div>
-        ) : null}
+        )}
         {hasAnswer && (
-          <a
-            href={`${basePath}exams/${exam.answerFileName}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full inline-flex items-center justify-center gap-1.5 bg-white text-[#0B1526] text-sm font-medium py-2.5 rounded-xl no-underline border border-gray-200 hover:bg-gray-50 transition-colors"
+          <Link
+            to={`/exam/${exam.id}`}
+            className="w-full inline-flex items-center justify-center gap-1.5 bg-white text-[#1c7ed6] text-sm font-medium py-2.5 rounded-xl no-underline border border-[#1c7ed6]/30 hover:bg-[#e7f5ff] transition-colors"
           >
-            모범답안
-          </a>
+            모범답안 보기
+          </Link>
         )}
       </div>
     </div>

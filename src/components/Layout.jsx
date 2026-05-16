@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
+import { getSessionAvatar } from '../utils/randomAvatar'
 
 /* ─── Icons (시안 그대로) ───────────────────────────────────── */
 const SVG = ({ children, cls = '' }) => (
@@ -15,25 +16,49 @@ const Icon = {
 
 const NAV_ITEMS = [
   { to: '/', label: '홈' },
-  { to: '/timetable', label: '시간표' },
+  { to: '/archive', label: '기출·자료' },
   { to: '/cafeteria', label: '학식' },
+  { to: '/timetable', label: '시간표' },
   { to: '/notice', label: '공지' },
-  { to: '/', archive: true, label: '기출·자료' }, // 임시 - 홈으로 (추후 archive 페이지 추가)
-  { to: '/ai', label: 'AI튜터' },
 ]
 
 const UTILITY_LINKS = [
-  { label: '학사정보', href: 'https://wise.uos.ac.kr/' },
-  { label: 'e-Class',  href: 'https://uclass.uos.ac.kr/' },
-  { label: '도서관',   href: 'https://library.uos.ac.kr/' },
-  { label: '포털',     href: 'https://portal.uos.ac.kr/' },
+  { label: '온라인 강의실', href: 'https://uclass.uos.ac.kr/' },
+  { label: '카피킬러',     href: 'https://www.copykiller.com/' },
+  { label: 'AI Chat',     href: 'https://chat.openai.com/' },
 ]
 
 /* ─── Logo ───────────────────────────────────────────────────── */
 function Logo() {
+  const basePath = import.meta.env.BASE_URL
   return (
     <Link className="uos-logo" to="/">
-      <div className="uos-logo__mark">자전</div>
+      <div
+        className="uos-logo__mark"
+        style={{
+          background: '#fff',
+          border: '1px solid var(--c-primary-100)',
+          padding: 2,
+          overflow: 'hidden',
+        }}
+        aria-label="UOS Archive"
+      >
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            background: 'var(--c-primary-700)',
+            WebkitMaskImage: `url(${basePath}logo.png)`,
+            maskImage: `url(${basePath}logo.png)`,
+            WebkitMaskSize: 'contain',
+            maskSize: 'contain',
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+            WebkitMaskPosition: 'center',
+            maskPosition: 'center',
+          }}
+        />
+      </div>
       <div className="uos-logo__type">
         <strong>
           UOS Archive
@@ -41,7 +66,6 @@ function Logo() {
             · 자유전공학부
           </span>
         </strong>
-        <span>UOS FREE MAJOR · ARCHIVE</span>
       </div>
     </Link>
   )
@@ -103,7 +127,13 @@ function TopBar({ activePath, onOpenMobileNav }) {
             <Icon.bell />
           </button>
           <div className="uos-desktop-only" style={{ alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--c-line)', marginLeft: 4 }}>
-            <div className="uos-avatar">하헌</div>
+            <div
+              className="uos-avatar"
+              style={{
+                background: `url(${getSessionAvatar()}) center/cover, var(--c-primary-50)`,
+              }}
+              aria-label="프로필"
+            />
             <div style={{ lineHeight: 1.2 }}>
               <div style={{ fontSize: 13, fontWeight: 600 }}>하헌재</div>
               <div style={{ fontSize: 11, color: 'var(--c-text-3)' }}>자유전공 · 25학번</div>
@@ -168,26 +198,49 @@ function Footer() {
   return (
     <footer
       style={{
-        background: '#0f172a',
-        color: '#94a3b8',
-        padding: '28px 32px',
+        background: 'linear-gradient(180deg, #fff 0%, var(--c-primary-50) 100%)',
+        color: 'var(--c-text-2)',
+        padding: '20px 24px',
         fontSize: 12,
-        borderTop: '1px solid #1e293b',
+        borderTop: '1px solid var(--c-line)',
       }}
     >
       <div className="max-w-[1400px] mx-auto flex flex-wrap items-center gap-x-5 gap-y-2">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 6, background: '#1e293b', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 10, color: '#cbd5e1' }}>자전</div>
-          <strong style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 600 }}>UOS Archive</strong>
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 6,
+              background: 'var(--c-primary-50)',
+              border: '1px solid var(--c-primary-100)',
+              display: 'grid',
+              placeItems: 'center',
+              fontWeight: 700,
+              fontSize: 10,
+              color: 'var(--c-primary-700)',
+            }}
+          >
+            자전
+          </div>
+          <strong style={{ color: 'var(--c-text)', fontSize: 13, fontWeight: 600 }}>UOS Archive</strong>
         </div>
-        <span style={{ color: '#475569' }}>·</span>
-        <span>자유전공학부 학생 운영 · 비공식 프로젝트</span>
-        <span style={{ color: '#475569' }} className="hidden sm:inline">·</span>
-        <a href="https://github.com/heonjaeh-lab/uos-exam-archive" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
-          GitHub
-        </a>
-        <div style={{ marginLeft: 'auto', fontSize: 11, color: '#64748b' }}>
-          © 2026 made by 하헌재
+
+        <div style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--c-text-3)' }}>
+          © 2026 made by{' '}
+          <a
+            href="https://www.instagram.com/je_noah/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'var(--c-primary)',
+              fontWeight: 600,
+              textDecoration: 'underline',
+              textUnderlineOffset: 2,
+            }}
+          >
+            je_noah
+          </a>
         </div>
       </div>
     </footer>

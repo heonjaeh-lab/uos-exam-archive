@@ -4,6 +4,7 @@ import examsData from '../data/exams.json'
 import { fetchCafeterias } from '../api/cafeteria'
 import { fetchNoticeBoard } from '../api/notice'
 import { parseClassNm } from '../utils/parseClassNm'
+import { getSessionAvatar } from '../utils/randomAvatar'
 
 const STORAGE_KEY = 'uos-timetable-v1'
 
@@ -210,30 +211,52 @@ function RecentExamsCard() {
       <div className="uos-card__hd">
         <h3>최근 기출 자료</h3>
         <span className="uos-tag uos-tag--success uos-tag--dot">아카이브</span>
-        <Link to="/" className="more">전체보기 <Icon.chevR cls="uos-icon--sm" /></Link>
+        <Link to="/archive" className="more">전체보기 <Icon.chevR cls="uos-icon--sm" /></Link>
       </div>
-      <div className="uos-list">
+      <div>
         {recent.map((r, i) => (
           <Link
             key={r.id || i}
             to={`/subject/${encodeURIComponent(r.subject)}`}
-            style={{ textDecoration: 'none', color: 'inherit' }}
+            style={{
+              display: 'block',
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '12px 18px',
+              borderTop: i === 0 ? '0' : '1px solid var(--c-line)',
+              transition: 'background .1s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--c-bg-soft)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <div className="uos-list__row" style={{ gridTemplateColumns: '24px 1fr auto auto' }}>
-              <span className="idx">{i + 1}</span>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span className={`uos-tag ${r.examType === '기말' ? 'uos-tag--primary' : 'uos-tag--outline'}`}>
-                    {r.examType}
-                  </span>
-                  <span className="title" style={{ fontSize: 13.5 }}>{r.title || r.subject}</span>
-                </div>
-                <div className="meta" style={{ marginTop: 3, display: 'flex', gap: 10 }}>
-                  <span>{r.subject}</span>
-                  {r.year && <><span>·</span><span>{r.year}</span></>}
-                </div>
-              </div>
-              <span style={{ color: 'var(--c-text-4)', fontSize: 12 }}>{r.year}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+              <span
+                className={`uos-tag ${
+                  r.examType === '기말' ? 'uos-tag--primary' : 'uos-tag--outline'
+                }`}
+              >
+                {r.examType}
+              </span>
+              {r.year && (
+                <span style={{ fontSize: 11, color: 'var(--c-text-4)' }} className="uos-tabular">
+                  {r.year}
+                </span>
+              )}
+            </div>
+            <div
+              className="uos-clamp-2"
+              style={{
+                fontSize: 13.5,
+                fontWeight: 500,
+                color: 'var(--c-text)',
+                lineHeight: 1.4,
+                wordBreak: 'keep-all',
+              }}
+            >
+              {r.title || r.subject}
+            </div>
+            <div style={{ marginTop: 3, fontSize: 11.5, color: 'var(--c-text-3)' }}>
+              {r.subject}
             </div>
           </Link>
         ))}
@@ -318,7 +341,13 @@ function MyInfoCard() {
     <section className="uos-card" style={{ background: 'linear-gradient(180deg, #fff 0%, var(--c-bg-soft) 100%)' }}>
       <div className="uos-card__bd">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="uos-avatar uos-avatar--lg">하헌</div>
+          <div
+            className="uos-avatar uos-avatar--lg"
+            style={{
+              background: `url(${getSessionAvatar()}) center/cover, var(--c-primary-50)`,
+            }}
+            aria-label="프로필"
+          />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700 }}>
               하헌재 <span style={{ color: 'var(--c-text-3)', fontWeight: 500, fontSize: 12, marginLeft: 4 }}>25학번</span>
@@ -377,7 +406,7 @@ export default function HomePage() {
                 시간표·학식·기출을 <span style={{ color: 'var(--c-primary)' }}>한 자리에</span>.
               </h1>
               <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--c-text-2)', maxWidth: 520 }}>
-                자전 학생이 같이 쓰는 학기 허브.
+                자전 학생들을 위한 모든것!
               </p>
             </div>
             <div style={{ display: 'flex', gap: 10, paddingBottom: 6 }}>
