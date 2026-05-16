@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { getSessionAvatar } from '../utils/randomAvatar'
+import { useUser } from '../utils/user'
 
 /* ─── Icons (시안 그대로) ───────────────────────────────────── */
 const SVG = ({ children, cls = '' }) => (
@@ -73,6 +74,7 @@ function Logo() {
 
 /* ─── TopBar ─────────────────────────────────────────────────── */
 function TopBar({ activePath, onOpenMobileNav }) {
+  const user = useUser()
   return (
     <header className="uos-topbar sticky top-0 z-30">
       {/* 유틸리티 바 (데스크탑만) */}
@@ -126,19 +128,25 @@ function TopBar({ activePath, onOpenMobileNav }) {
           <button className="uos-btn uos-btn--ghost" style={{ width: 36, padding: 0, flex: '0 0 auto' }} aria-label="알림">
             <Icon.bell />
           </button>
-          <div className="uos-desktop-only" style={{ alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--c-line)', marginLeft: 4 }}>
-            <div
-              className="uos-avatar"
-              style={{
-                background: `url(${getSessionAvatar()}) center/cover, var(--c-primary-50)`,
-              }}
-              aria-label="프로필"
-            />
-            <div style={{ lineHeight: 1.2 }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>하헌재</div>
-              <div style={{ fontSize: 11, color: 'var(--c-text-3)' }}>자유전공 · 25학번</div>
+          {user ? (
+            <div className="uos-desktop-only" style={{ alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--c-line)', marginLeft: 4 }}>
+              <div
+                className="uos-avatar"
+                style={{
+                  background: `url(${getSessionAvatar()}) center/cover, var(--c-primary-50)`,
+                }}
+                aria-label="프로필"
+              />
+              <div style={{ lineHeight: 1.2 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                  {user.name || `학번 ${user.studentId}`}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--c-text-3)' }}>
+                  자유전공 · {user.studentId?.slice(0, 4)}학번
+                </div>
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </header>

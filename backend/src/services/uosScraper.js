@@ -63,6 +63,27 @@ export async function loginAndFetchTimetable(userId, password) {
     await page.setUserAgent(USER_AGENT)
     await page.setViewport({ width: 1400, height: 900 })
 
+    // === 0. 리소스 차단 (이미지/폰트/CSS/광고) — 페이지 로드 3-5배 빨라짐 ===
+    await page.setRequestInterception(true)
+    page.on('request', (req) => {
+      const type = req.resourceType()
+      const url = req.url()
+      // 핵심 리소스만 통과
+      if (type === 'image' || type === 'stylesheet' || type === 'font' || type === 'media') {
+        req.abort()
+      } else if (
+        url.includes('googletagmanager') ||
+        url.includes('google-analytics') ||
+        url.includes('doubleclick') ||
+        url.includes('facebook.com') ||
+        url.includes('beacon')
+      ) {
+        req.abort() // 추적 스크립트 차단
+      } else {
+        req.continue()
+      }
+    })
+
     // === 1. list.do 응답 가로채기 등록 ===
     page.on('response', async (response) => {
       const url = response.url()
@@ -78,17 +99,17 @@ export async function loginAndFetchTimetable(userId, password) {
 
     // === 2. 포털 로그인 페이지 진입 (SSO 자동 처리) ===
     await page.goto(PORTAL_LOGIN_URL, {
-      waitUntil: 'networkidle2',
-      timeout: 45000,
+      waitUntil: 'domcontentloaded', // networkidle2 → DOM만 (3-5초 절약)
+      timeout: 25000,
     })
 
     // 학번/비밀번호 입력 필드 대기
-    await page.waitForSelector('#user_id', { timeout: 20000 })
-    await page.waitForSelector('#user_password', { timeout: 20000 })
+    await page.waitForSelector('#user_id', { timeout: 15000 })
+    await page.waitForSelector('#user_password', { timeout: 15000 })
 
     // === 3. 학번/비밀번호 입력 (ML4WebVKey가 자동 암호화) ===
-    await page.type('#user_id', userId, { delay: 40 })
-    await page.type('#user_password', password, { delay: 40 })
+    await page.type('#user_id', userId, { delay: 15 })
+    await page.type('#user_password', password, { delay: 15 })
 
     // === 4. 로그인 버튼 클릭 ===
     // 시립대 페이지는 보통 form submit 또는 onclick 함수 호출
@@ -121,7 +142,7 @@ export async function loginAndFetchTimetable(userId, password) {
     // === 5. 로그인 결과 대기 (WISE 메인까지 이동) ===
     await page
       .waitForFunction(() => location.href.includes('wise.uos.ac.kr/index.do'), {
-        timeout: 30000,
+        timeout: 20000,
       })
       .catch(() => {})
 
@@ -144,9 +165,9 @@ export async function loginAndFetchTimetable(userId, password) {
 
     // === 7. WISE 메인 페이지 로딩 대기 ===
     await page
-      .waitForSelector('a, .cl-sidenavigation-item', { timeout: 20000 })
+      .waitForSelector('a, .cl-sidenavigation-item', { timeout: 10000 })
       .catch(() => {})
-    await new Promise((r) => setTimeout(r, 2000)) // 메뉴 트리 로딩 대기
+    await new Promise((r) => setTimeout(r, 800)) // 메뉴 트리 로딩 대기 (단축)
 
     // === 8. "수강신청확인서" 메뉴 클릭 ===
     const menuClicked = await page.evaluate(() => {
