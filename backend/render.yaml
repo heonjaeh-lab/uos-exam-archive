@@ -24,8 +24,9 @@ services:
       - key: PORT
         value: 3001
       - key: ALLOWED_ORIGINS
-        # 본인 GitHub Pages URL로 수정하세요
         value: https://haheonjae.github.io,http://localhost:5173,http://localhost:5174
+      - key: JWT_SECRET
+        generateValue: true # Render가 자동 생성하는 안전한 랜덤 키
 
     # 무료 플랜은 15분 idle 후 sleep됨. 깨우는 데 30초 정도 걸림.
     # 자주 사용하면 UptimeRobot 같은 외부 서비스로 5분마다 ping 설정 추천.

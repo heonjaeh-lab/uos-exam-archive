@@ -47,7 +47,8 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
     try {
       const result = await loginAndFetchTimetable(userId, password)
       if (result.success) {
-        saveUser({ studentId: userId })
+        // 토큰까지 저장 (30일 유효) - 이후 시립대 호출 없이 자동 인증
+        saveUser({ studentId: userId, token: result.token })
         onSuccess?.(result.data)
         setPassword('')
         onClose?.()

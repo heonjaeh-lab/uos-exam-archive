@@ -5,6 +5,8 @@ import { fetchCafeterias } from '../api/cafeteria'
 import { fetchNoticeBoard } from '../api/notice'
 import { parseClassNm } from '../utils/parseClassNm'
 import { getSessionAvatar } from '../utils/randomAvatar'
+import { useUser } from '../utils/user'
+import PortalLoginModal from '../components/PortalLoginModal'
 
 const STORAGE_KEY = 'uos-timetable-v1'
 
@@ -326,8 +328,8 @@ function NoticeSideCard() {
   )
 }
 
-/* ─── 내 정보 카드 ───────────────────────────────────────── */
-function MyInfoCard() {
+/* ─── 내 정보 카드 (로그인 사용자) ──────────────────────────── */
+function MyInfoCard({ user }) {
   const [stats, setStats] = useState({ credits: 0, courseCount: 0, semesters: 0 })
 
   useEffect(() => {
@@ -358,9 +360,11 @@ function MyInfoCard() {
           />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700 }}>
-              하헌재 <span style={{ color: 'var(--c-text-3)', fontWeight: 500, fontSize: 12, marginLeft: 4 }}>25학번</span>
+              {user?.name || `학번 ${user?.studentId}`}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--c-text-3)' }}>자유전공학부</div>
+            <div style={{ fontSize: 12, color: 'var(--c-text-3)' }}>
+              자유전공학부 · {user?.studentId?.slice(0, 4)}학번
+            </div>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 16 }}>
@@ -383,9 +387,92 @@ function MyInfoCard() {
   )
 }
 
+/* ─── 로그인 권유 카드 (비로그인) ───────────────────────────── */
+function LoginPromptCard({ onLogin }) {
+  return (
+    <section
+      className="uos-card"
+      style={{
+        background:
+          'linear-gradient(160deg, var(--c-primary-700) 0%, var(--c-primary) 70%, var(--c-primary-600) 100%)',
+        color: '#fff',
+        border: 'none',
+        overflow: 'hidden',
+        position: 'relative',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          right: -40,
+          top: -40,
+          width: 160,
+          height: 160,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.08)',
+        }}
+      />
+      <div className="uos-card__bd" style={{ position: 'relative' }}>
+        <div
+          style={{
+            fontSize: 10.5,
+            letterSpacing: '0.14em',
+            opacity: 0.85,
+            fontWeight: 600,
+          }}
+        >
+          UOS PORTAL
+        </div>
+        <h3
+          style={{
+            margin: '6px 0 6px',
+            fontSize: 17,
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.3,
+          }}
+        >
+          시립대 포털로 로그인하면<br />
+          시간표가 자동으로 와요
+        </h3>
+        <ul style={{ margin: '8px 0 14px', paddingLeft: 18, fontSize: 12, opacity: 0.9, lineHeight: 1.7 }}>
+          <li>본인 수강 강의 자동 등록</li>
+          <li>다른 기기에서도 같은 시간표 동기화</li>
+          <li>30일 자동 로그인 유지</li>
+        </ul>
+        <button
+          onClick={onLogin}
+          className="uos-btn"
+          style={{
+            width: '100%',
+            background: '#fff',
+            color: 'var(--c-primary-700)',
+            border: 'none',
+            fontWeight: 700,
+          }}
+        >
+          시립대 포털 연동하기 <Icon.chevR cls="uos-icon--sm" />
+        </button>
+        <p
+          style={{
+            margin: '10px 0 0',
+            fontSize: 10.5,
+            opacity: 0.7,
+            textAlign: 'center',
+          }}
+        >
+          비밀번호는 저장되지 않아요 · 학번만 식별용으로 사용
+        </p>
+      </div>
+    </section>
+  )
+}
+
 /* ─── HomePage Main ──────────────────────────────────────── */
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
+  const user = useUser()
 
   return (
     <div style={{ margin: '-24px -16px 0', paddingBottom: 20 }}>
@@ -471,11 +558,21 @@ export default function HomePage() {
 
           {/* 사이드 */}
           <aside className="flex flex-col gap-4 min-w-0">
-            <MyInfoCard />
+            {user ? (
+              <MyInfoCard user={user} />
+            ) : (
+              <LoginPromptCard onLogin={() => setLoginModalOpen(true)} />
+            )}
             <NoticeSideCard />
           </aside>
         </div>
       </main>
+
+      <PortalLoginModal
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onSuccess={() => setLoginModalOpen(false)}
+      />
     </div>
   )
 }
