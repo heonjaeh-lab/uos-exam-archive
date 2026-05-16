@@ -151,8 +151,13 @@ function RestaurantCard({ restaurant }) {
         {error ? (
           <div style={{ padding: 18, fontSize: 13, color: 'var(--c-danger)' }}>⚠️ {error}</div>
         ) : !hasAnyMeal ? (
-          <div style={{ padding: '28px 18px', textAlign: 'center', color: 'var(--c-text-3)', fontSize: 13 }}>
-            🍽️ 이 날은 메뉴가 등록되지 않았어요
+          <div style={{ padding: '20px 18px 24px', textAlign: 'center', color: 'var(--c-text-3)' }}>
+            <img
+              src={`${import.meta.env.BASE_URL}empty-cafeteria.png`}
+              alt="운영 안 함"
+              style={{ width: 110, height: 110, objectFit: 'contain', margin: '0 auto 6px' }}
+            />
+            <div style={{ fontSize: 13 }}>이 날은 메뉴가 등록되지 않았어요</div>
           </div>
         ) : (
           MEAL_INFO.map((meal) => {

@@ -82,8 +82,12 @@ function TodayTimetableCard() {
       </div>
       <div className="uos-card__bd" style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {todayClasses.length === 0 ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--c-text-3)' }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>📅</div>
+          <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--c-text-3)' }}>
+            <img
+              src={`${import.meta.env.BASE_URL}empty-timetable.png`}
+              alt="시간표 비어있음"
+              style={{ width: 120, height: 120, objectFit: 'contain', margin: '0 auto 8px' }}
+            />
             <div style={{ fontSize: 13, marginBottom: 8 }}>오늘 수업이 없거나 시간표가 비어있어요</div>
             <Link to="/timetable" className="uos-btn uos-btn--sm uos-btn--primary" style={{ display: 'inline-flex' }}>
               시간표 등록하기
@@ -166,8 +170,12 @@ function TodayCafeteriaCard() {
             학식 메뉴 가져오는 중...
           </div>
         ) : lunchToday.length === 0 ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--c-text-3)' }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
+          <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--c-text-3)' }}>
+            <img
+              src={`${import.meta.env.BASE_URL}empty-cafeteria.png`}
+              alt="운영 안 함"
+              style={{ width: 120, height: 120, objectFit: 'contain', margin: '0 auto 6px' }}
+            />
             <div style={{ fontSize: 13 }}>오늘은 학식 운영 X<br/>(주말/공휴일일 수 있어요)</div>
           </div>
         ) : (
