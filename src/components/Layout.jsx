@@ -47,9 +47,20 @@ const CalendarIcon = () => (
   </svg>
 )
 
+const FoodIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z" />
+    <line x1="6" y1="1" x2="6" y2="4" />
+    <line x1="10" y1="1" x2="10" y2="4" />
+    <line x1="14" y1="1" x2="14" y2="4" />
+  </svg>
+)
+
 const navItems = [
   { to: '/', label: '홈', Icon: HomeIcon },
   { to: '/timetable', label: '시간표', Icon: CalendarIcon },
+  { to: '/cafeteria', label: '학식', Icon: FoodIcon },
   { to: '/ai', label: 'AI튜터', Icon: AiIcon },
   { to: '/about', label: '소개', Icon: InfoIcon },
 ]
@@ -57,6 +68,7 @@ const navItems = [
 const PAGE_TITLES = {
   '/': '전체 족보',
   '/timetable': '시간표',
+  '/cafeteria': '학식',
   '/ai': 'AI튜터',
   '/about': '소개',
 }

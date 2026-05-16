@@ -11,6 +11,7 @@ import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import authRouter from './routes/auth.js'
+import cafeteriaRouter from './routes/cafeteria.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -47,6 +48,7 @@ app.get('/', (req, res) => {
 
 // 라우터
 app.use('/api', authRouter)
+app.use('/api', cafeteriaRouter)
 
 // 404
 app.use((req, res) => {
