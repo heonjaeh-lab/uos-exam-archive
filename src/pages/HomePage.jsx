@@ -1,89 +1,444 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import examsData from '../data/exams.json'
-import ExamCard from '../components/ExamCard'
-import FilterBar from '../components/FilterBar'
-import SearchBar from '../components/SearchBar'
-import { matchesSearch } from '../data/subjectAliases'
+import { fetchCafeterias } from '../api/cafeteria'
+import { fetchNoticeBoard } from '../api/notice'
+import { parseClassNm } from '../utils/parseClassNm'
 
-const subjects = [...new Set(examsData.map(e => e.subject))].sort()
-const examTypes = [...new Set(examsData.map(e => e.examType))].sort()
-const years = [...new Set(examsData.map(e => e.year))].sort((a, b) => b - a)
+const STORAGE_KEY = 'uos-timetable-v1'
 
-export default function HomePage() {
-  const [filters, setFilters] = useState({
-    subject: '',
-    examType: '',
-    year: '',
-    search: '',
-  })
+const PERIOD_TO_TIME = {
+  1: '09:00', 2: '10:00', 3: '11:00', 4: '12:00', 5: '13:00',
+  6: '14:00', 7: '15:00', 8: '16:00', 9: '17:00', 10: '18:00',
+  11: '19:00', 12: '20:00', 13: '21:00', 14: '22:00',
+}
 
-  const filteredExams = useMemo(() => {
-    return examsData.filter(exam => {
-      if (filters.subject && exam.subject !== filters.subject) return false
-      if (filters.examType && exam.examType !== filters.examType) return false
-      if (filters.year && exam.year !== Number(filters.year)) return false
-      if (filters.search) {
-        if (!matchesSearch(exam, filters.search)) return false
-      }
-      return true
-    })
-  }, [filters])
+const DAY_KEYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
+const TODAY_LABEL_FORMAT = (() => {
+  const d = new Date()
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${DAY_LABELS[d.getDay()]})`
+})()
+
+/* ─── 아이콘 ────────────────────────────────────────────── */
+const SVG = ({ children, cls = '' }) => (
+  <svg viewBox="0 0 24 24" className={`uos-icon ${cls}`}>{children}</svg>
+)
+const Icon = {
+  cal: (p) => <SVG {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></SVG>,
+  fire: (p) => <SVG {...p}><path d="M12 3s4 4 4 8-2 6-4 6-4-2-4-6c0-2 1-3 2-3 0 2 1 2 2 1z"/></SVG>,
+  bell: (p) => <SVG {...p}><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/></SVG>,
+  search: (p) => <SVG {...p}><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></SVG>,
+  upload: (p) => <SVG {...p}><path d="M12 20V8"/><path d="M7 13l5-5 5 5"/><path d="M5 4h14"/></SVG>,
+  chevR: (p) => <SVG {...p}><polyline points="9 6 15 12 9 18"/></SVG>,
+  eye: (p) => <SVG {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></SVG>,
+}
+
+/* ─── 오늘의 시간표 위젯 ─────────────────────────────────── */
+function TodayTimetableCard() {
+  const [todayClasses, setTodayClasses] = useState([])
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+      // 가장 최근 학기의 시간표 사용 (정렬해서 마지막)
+      const keys = Object.keys(saved).sort()
+      const latest = keys[keys.length - 1]
+      if (!latest) return setTodayClasses([])
+      const courses = saved[latest] || []
+
+      // 오늘 요일에 해당하는 강의만 필터
+      const today = DAY_KEYS[new Date().getDay()]
+      const blocks = []
+      courses.forEach((c) => {
+        const parsedBlocks = parseClassNm(c.CLASS_NM)
+        parsedBlocks.forEach((b) => {
+          if (b.day === today) {
+            blocks.push({
+              ...b,
+              course: c,
+              startPeriod: Math.min(...b.periods),
+              endPeriod: Math.max(...b.periods),
+            })
+          }
+        })
+      })
+      blocks.sort((a, b) => a.startPeriod - b.startPeriod)
+      setTodayClasses(blocks)
+    } catch (e) {
+      console.warn('시간표 로딩 실패', e)
+    }
+  }, [])
 
   return (
-    <div>
-      {/* Title */}
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-        족보 아카이브
-      </h2>
-
-      {/* Filter Area */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8">
-        <div className="space-y-4">
-          <SearchBar value={filters.search} onChange={v => setFilters(prev => ({ ...prev, search: v }))} subjects={subjects} />
-          <div className="flex flex-wrap gap-3 items-center justify-center">
-            <FilterBar
-              filters={filters}
-              setFilters={setFilters}
-              subjects={subjects}
-              examTypes={examTypes}
-              years={years}
-            />
-          </div>
-        </div>
+    <div className="uos-card" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="uos-card__hd">
+        <Icon.cal cls="uos-icon--sm" />
+        <h3>오늘의 수업</h3>
+        <span className="uos-muted" style={{ fontSize: 12 }}>{TODAY_LABEL_FORMAT}</span>
+        <Link to="/timetable" className="more">전체 시간표 <Icon.chevR cls="uos-icon--sm" /></Link>
       </div>
+      <div className="uos-card__bd" style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {todayClasses.length === 0 ? (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--c-text-3)' }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>📅</div>
+            <div style={{ fontSize: 13, marginBottom: 8 }}>오늘 수업이 없거나 시간표가 비어있어요</div>
+            <Link to="/timetable" className="uos-btn uos-btn--sm uos-btn--primary" style={{ display: 'inline-flex' }}>
+              시간표 등록하기
+            </Link>
+          </div>
+        ) : (
+          todayClasses.map((c, i) => {
+            const startTime = PERIOD_TO_TIME[c.startPeriod]
+            const endTime = PERIOD_TO_TIME[c.endPeriod + 1] || '미정'
+            return (
+              <div
+                key={i}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '88px 1fr auto',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '12px 14px',
+                  background: 'var(--c-bg-soft)',
+                  borderLeft: '4px solid var(--c-primary)',
+                  borderRadius: 8,
+                }}
+              >
+                <div style={{ lineHeight: 1.3 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }} className="uos-tabular">{startTime}</div>
+                  <div style={{ fontSize: 11, color: 'var(--c-text-3)' }} className="uos-tabular">— {endTime}</div>
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+                    {c.course.SUBJECT_NM}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--c-text-3)', marginTop: 2 }}>
+                    {c.course.PROF_KOR_NM} · {c.room}
+                  </div>
+                </div>
+                <span className="uos-tag uos-tag--outline">{c.course.CREDIT}학점</span>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
 
-      {/* Subject Quick Links */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {subjects.map(subject => (
+/* ─── 오늘의 학식 위젯 ───────────────────────────────────── */
+function TodayCafeteriaCard() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchCafeterias()
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setLoading(false))
+  }, [])
+
+  // 점심(중식)이 있는 식당만 추출
+  const lunchToday = useMemo(() => {
+    if (!data?.restaurants) return []
+    return data.restaurants
+      .filter((r) => r.meals?.lunch)
+      .map((r) => ({
+        name: r.shortName || r.name,
+        menu: r.meals.lunch.split(/[·•\n]/)[0].trim().slice(0, 30),
+      }))
+      .slice(0, 4)
+  }, [data])
+
+  return (
+    <div className="uos-card">
+      <div className="uos-card__hd">
+        <Icon.fire cls="uos-icon--sm" />
+        <h3>오늘의 학식</h3>
+        <Link to="/cafeteria" className="more">전체 식당 <Icon.chevR cls="uos-icon--sm" /></Link>
+      </div>
+      <div className="uos-card__bd" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {loading ? (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--c-text-3)', fontSize: 13 }}>
+            학식 메뉴 가져오는 중...
+          </div>
+        ) : lunchToday.length === 0 ? (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--c-text-3)' }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
+            <div style={{ fontSize: 13 }}>오늘은 학식 운영 X<br/>(주말/공휴일일 수 있어요)</div>
+          </div>
+        ) : (
+          lunchToday.map((r, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 12px',
+                border: '1px solid var(--c-line)',
+                borderRadius: 8,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600 }}>{r.name}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--c-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {r.menu}
+                </div>
+              </div>
+              <span className="uos-tag uos-tag--primary">중식</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ─── 최근 기출 자료 ────────────────────────────────────── */
+function RecentExamsCard() {
+  const recent = useMemo(() => {
+    return [...examsData]
+      .sort((a, b) => (b.year || 0) - (a.year || 0))
+      .slice(0, 6)
+  }, [])
+
+  return (
+    <section className="uos-card">
+      <div className="uos-card__hd">
+        <h3>최근 기출 자료</h3>
+        <span className="uos-tag uos-tag--success uos-tag--dot">아카이브</span>
+        <Link to="/" className="more">전체보기 <Icon.chevR cls="uos-icon--sm" /></Link>
+      </div>
+      <div className="uos-list">
+        {recent.map((r, i) => (
           <Link
-            key={subject}
-            to={`/subject/${encodeURIComponent(subject)}`}
-            className="text-xs bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg no-underline hover:bg-uos-blue hover:text-white hover:border-uos-blue transition-colors"
+            key={r.id || i}
+            to={`/subject/${encodeURIComponent(r.subject)}`}
+            style={{ textDecoration: 'none', color: 'inherit' }}
           >
-            {subject}
+            <div className="uos-list__row" style={{ gridTemplateColumns: '24px 1fr auto auto' }}>
+              <span className="idx">{i + 1}</span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className={`uos-tag ${r.examType === '기말' ? 'uos-tag--primary' : 'uos-tag--outline'}`}>
+                    {r.examType}
+                  </span>
+                  <span className="title" style={{ fontSize: 13.5 }}>{r.title || r.subject}</span>
+                </div>
+                <div className="meta" style={{ marginTop: 3, display: 'flex', gap: 10 }}>
+                  <span>{r.subject}</span>
+                  {r.year && <><span>·</span><span>{r.year}</span></>}
+                </div>
+              </div>
+              <span style={{ color: 'var(--c-text-4)', fontSize: 12 }}>{r.year}</span>
+            </div>
           </Link>
         ))}
       </div>
+    </section>
+  )
+}
 
-      {/* Results Count */}
-      <div className="text-sm text-gray-500 mb-4">
-        총 <span className="font-semibold text-gray-700">{filteredExams.length}</span>개의 자료
+/* ─── 학부 공지 사이드 위젯 ──────────────────────────────── */
+function NoticeSideCard() {
+  const [notices, setNotices] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchNoticeBoard('academic')
+      .then((data) => setNotices((data.notices || []).slice(0, 5)))
+      .catch(() => setNotices([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <section className="uos-card">
+      <div className="uos-card__hd" style={{ padding: '14px 18px' }}>
+        <Icon.bell cls="uos-icon--sm" />
+        <h3 style={{ fontSize: 14 }}>학부 공지</h3>
+        <Link to="/notice" className="more">+</Link>
       </div>
+      <div style={{ padding: '4px 0 8px' }}>
+        {loading ? (
+          <div style={{ padding: 16, fontSize: 12, color: 'var(--c-text-3)' }}>불러오는 중...</div>
+        ) : notices.length === 0 ? (
+          <div style={{ padding: 16, fontSize: 12, color: 'var(--c-text-3)' }}>공지를 가져올 수 없어요</div>
+        ) : (
+          notices.map((n, i) => (
+            <a
+              key={n.id || i}
+              href={n.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', textDecoration: 'none', color: 'var(--c-text)', fontSize: 13 }}
+            >
+              <span
+                className={`uos-tag ${n.category === '학사' ? 'uos-tag--primary' : n.category === '장학' ? 'uos-tag--warning' : ''}`}
+                style={{ minWidth: 36, justifyContent: 'center' }}
+              >
+                {n.category}
+              </span>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {n.title}
+              </span>
+              <span style={{ color: 'var(--c-text-4)', fontSize: 11.5 }} className="uos-tabular">
+                {n.date?.slice(5) || ''}
+              </span>
+            </a>
+          ))
+        )}
+      </div>
+    </section>
+  )
+}
 
-      {/* Exam Cards Grid */}
-      {filteredExams.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredExams.map(exam => (
-            <ExamCard key={exam.id} exam={exam} />
+/* ─── 내 정보 카드 ───────────────────────────────────────── */
+function MyInfoCard() {
+  const [stats, setStats] = useState({ credits: 0, courseCount: 0, semesters: 0 })
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+      const keys = Object.keys(saved)
+      let credits = 0
+      let courseCount = 0
+      keys.forEach((k) => {
+        const courses = saved[k] || []
+        courseCount += courses.length
+        courses.forEach((c) => { credits += c.CREDIT || 0 })
+      })
+      setStats({ credits, courseCount, semesters: keys.length })
+    } catch {}
+  }, [])
+
+  return (
+    <section className="uos-card" style={{ background: 'linear-gradient(180deg, #fff 0%, var(--c-bg-soft) 100%)' }}>
+      <div className="uos-card__bd">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="uos-avatar uos-avatar--lg">하헌</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>
+              하헌재 <span style={{ color: 'var(--c-text-3)', fontWeight: 500, fontSize: 12, marginLeft: 4 }}>25학번</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--c-text-3)' }}>자유전공학부</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: 16 }}>
+          {[
+            { n: stats.credits, l: '담은 학점' },
+            { n: stats.courseCount, l: '수강 강의' },
+            { n: stats.semesters, l: '저장 학기' },
+          ].map((s, i) => (
+            <div key={i} style={{ background: '#fff', border: '1px solid var(--c-line)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 700 }} className="uos-tabular">{s.n}</div>
+              <div style={{ fontSize: 11, color: 'var(--c-text-3)', marginTop: 1 }}>{s.l}</div>
+            </div>
           ))}
         </div>
-      ) : (
-        <div className="text-center py-16 text-gray-400">
-          <div className="text-4xl mb-3">🔍</div>
-          <p>조회된 자료가 없습니다</p>
+        <Link to="/timetable" className="uos-btn" style={{ width: '100%', marginTop: 12, textDecoration: 'none' }}>
+          시간표 보기 <Icon.chevR cls="uos-icon--sm" />
+        </Link>
+      </div>
+    </section>
+  )
+}
+
+/* ─── HomePage Main ──────────────────────────────────────── */
+export default function HomePage() {
+  const [searchQuery, setSearchQuery] = useState('')
+
+  return (
+    <div style={{ margin: '-24px -16px 0', paddingBottom: 20 }}>
+      {/* Hero */}
+      <section
+        style={{
+          background: 'linear-gradient(180deg, #fff 0%, var(--c-primary-50) 100%)',
+          borderBottom: '1px solid var(--c-line)',
+          padding: '36px 16px 32px',
+        }}
+      >
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 32, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '4px 10px',
+                background: 'rgba(28,126,214,0.1)', color: 'var(--c-primary-700)',
+                borderRadius: 20, fontSize: 11.5, fontWeight: 600, letterSpacing: '0.04em',
+                marginBottom: 12,
+              }}>
+                2026-1학기 · {TODAY_LABEL_FORMAT}
+              </div>
+              <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.25 }}>
+                자유전공학부의<br />
+                시간표·학식·기출을 <span style={{ color: 'var(--c-primary)' }}>한 자리에</span>.
+              </h1>
+              <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--c-text-2)', maxWidth: 520 }}>
+                자전 학생이 같이 쓰는 학기 허브.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 10, paddingBottom: 6 }}>
+              <Link to="/timetable" className="uos-btn uos-btn--lg uos-btn--primary" style={{ textDecoration: 'none' }}>
+                <Icon.cal /> 내 시간표
+              </Link>
+              <Link to="/cafeteria" className="uos-btn uos-btn--lg" style={{ textDecoration: 'none' }}>
+                <Icon.fire /> 오늘 학식
+              </Link>
+            </div>
+          </div>
+
+          {/* 빠른 검색 */}
+          <form
+            onSubmit={(e) => e.preventDefault()}
+            style={{
+              marginTop: 22,
+              display: 'flex', alignItems: 'center',
+              background: '#fff', borderRadius: 12,
+              boxShadow: '0 6px 24px rgba(28,126,214,0.10), 0 1px 2px rgba(15,23,42,.04)',
+              border: '1px solid var(--c-line)', padding: 6,
+            }}
+          >
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px' }}>
+              <Icon.search cls="uos-icon--lg" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ flex: 1, border: 0, outline: 0, font: 'inherit', fontSize: 16, padding: '14px 0', background: 'transparent' }}
+                placeholder="예: 일반물리학 · 사고와 표현 · 오늘 학식"
+              />
+            </div>
+            <button type="submit" className="uos-btn uos-btn--primary" style={{ height: 48, padding: '0 24px', fontSize: 15, fontWeight: 600 }}>
+              검색
+            </button>
+          </form>
         </div>
-      )}
+      </section>
+
+      {/* 본문 */}
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 16px 36px' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+          {/* 메인 컬럼 */}
+          <div className="flex flex-col gap-5 min-w-0">
+            {/* Today row */}
+            <section className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr] gap-4">
+              <TodayTimetableCard />
+              <TodayCafeteriaCard />
+            </section>
+
+            {/* 최근 기출 자료 */}
+            <RecentExamsCard />
+          </div>
+
+          {/* 사이드 */}
+          <aside className="flex flex-col gap-4 min-w-0">
+            <MyInfoCard />
+            <NoticeSideCard />
+          </aside>
+        </div>
+      </main>
     </div>
   )
 }
