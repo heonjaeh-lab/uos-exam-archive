@@ -1,16 +1,19 @@
 /**
  * 서울시립대 OpenAPI 클라이언트
  *
+ * 시립대 wise.uos.ac.kr/COM/* 는 CORS 안 풀어줘서 브라우저에서 직접 호출 불가.
+ *
  * 개발 환경: Vite 프록시 사용 (/uos-api → https://wise.uos.ac.kr/COM)
- * 프로덕션 환경: 직접 호출 (CORS 막히면 Firebase Functions 같은 별도 프록시 필요)
+ * 프로덕션 환경: Cloudflare Worker 프록시 (/api/uos/* → wise.uos.ac.kr/COM/*)
  */
 
 const API_KEY = import.meta.env.VITE_UOS_API_KEY
+const CRAWLER_URL = import.meta.env.VITE_CRAWLER_URL || ''
 
-// 개발 환경에서는 프록시, 프로덕션에서는 직접 호출
+// 개발 환경: Vite 프록시, 프로덕션: Cloudflare Worker 프록시
 const BASE_URL = import.meta.env.DEV
   ? '/uos-api'
-  : 'https://wise.uos.ac.kr/COM'
+  : `${CRAWLER_URL}/api/uos`
 
 /**
  * 쿼리스트링으로 변환

@@ -64,6 +64,10 @@ export default {
         response = await handleCafeteria(url.searchParams)
       } else if (url.pathname === '/api/notice') {
         response = await handleNotice(url.searchParams)
+      } else if (url.pathname.startsWith('/api/uos/')) {
+        // 시립대 OpenAPI 프록시: /api/uos/<endpoint>?<params>
+        // 예: /api/uos/ApiTimeTable/list.do?apiKey=...&year=2026&term=10
+        response = await handleUosApi(url)
       } else {
         response = json({ error: 'Not Found' }, 404)
       }
@@ -124,6 +128,35 @@ async function fetchHtml(url) {
   })
   if (!res.ok) throw new Error(`Fetch 실패: ${res.status}`)
   return res.text()
+}
+
+/* ───── 시립대 OpenAPI 프록시 ───── */
+// 시립대 wise.uos.ac.kr/COM/ApiXxxx/list.do는 CORS 안 풀어줘서
+// 브라우저에서 직접 호출 불가 → Worker가 대신 호출해서 JSON 그대로 전달.
+async function handleUosApi(url) {
+  // /api/uos/ApiTimeTable/list.do → ApiTimeTable/list.do
+  const endpoint = url.pathname.replace(/^\/api\/uos\//, '')
+  // 엔드포인트 검증: 시립대 API 패턴만 허용
+  if (!/^Api[A-Za-z]+\/[a-z]+\.do$/.test(endpoint)) {
+    return json({ error: '허용되지 않는 엔드포인트' }, 400)
+  }
+
+  const cacheKey = `uos-${endpoint}-${url.search}`
+  const data = await cached(cacheKey, 10 * 60 * 1000, async () => {
+    const upstreamUrl = `https://wise.uos.ac.kr/COM/${endpoint}${url.search}`
+    const res = await fetch(upstreamUrl, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Accept': 'application/json',
+        'Accept-Language': 'ko-KR,ko;q=0.9',
+      },
+      cf: { cacheTtl: 600, cacheEverything: false },
+    })
+    if (!res.ok) throw new Error(`시립대 API 오류: ${res.status}`)
+    return res.json()
+  })
+
+  return json(data)
 }
 
 /* ───── 학식 ───── */
