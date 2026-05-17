@@ -531,7 +531,7 @@ export default function HomePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ flex: 1, border: 0, outline: 0, font: 'inherit', fontSize: 16, padding: '14px 0', background: 'transparent' }}
-                placeholder="예: 일반물리학 · 사고와 표현 · 오늘 학식"
+                placeholder="예: 대학물리학 · 오늘학식"
               />
             </div>
             <button type="submit" className="uos-btn uos-btn--primary" style={{ height: 48, padding: '0 24px', fontSize: 15, fontWeight: 600 }}>
