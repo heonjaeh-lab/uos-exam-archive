@@ -137,15 +137,18 @@ export async function loginAndFetchTimetable(userId, password) {
     })
 
     // === 2. 포털 로그인 페이지 진입 (SSO 자동 처리) ===
-    // portal.uos.ac.kr → sso.uos.ac.kr 자동 리다이렉트가 있어서 networkidle이 필요
+    // portal.uos.ac.kr → sso.uos.ac.kr 자동 리다이렉트 + Google Identity Services iframe 등
+    // 외부 리소스가 networkidle을 늦춰서 form fields가 늦게 렌더됨.
+    // 진단 결과: 필드 자체는 존재하나 15초 안에 못 찾음 → 타임아웃 확대.
     await page.goto(PORTAL_LOGIN_URL, {
-      waitUntil: 'networkidle2',
+      waitUntil: 'domcontentloaded', // SSO 리다이렉트 후 main frame DOM만 기다림
       timeout: 30000,
     })
 
     // 학번/비밀번호 입력 필드 대기 — 못 찾으면 페이지 상태 캡처해서 반환
     try {
-      await page.waitForSelector('#user_id', { timeout: 15000 })
+      // visible: true → display:none이 아닐 때까지 대기 (실제로 사용 가능한 상태)
+      await page.waitForSelector('#user_id', { timeout: 40000, visible: true })
     } catch (e) {
       // 페이지 구조 진단 정보 수집
       const diag = await page.evaluate(() => {
