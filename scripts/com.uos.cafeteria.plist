@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.uos.cafeteria</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-l</string>
+        <string>-c</string>
+        <string>cd /Users/haheonjae/Development/uos-exam-archive && /opt/homebrew/bin/node scripts/update-cafeteria.mjs >> /tmp/uos-cafeteria.log 2>&amp;1</string>
+    </array>
+
+    <!-- 매일 오전 11시 실행 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>11</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- 컴퓨터가 11시에 꺼져있었으면 다음 부팅 시 따라잡기 -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/uos-cafeteria.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/uos-cafeteria-error.log</string>
+</dict>
+</plist>
