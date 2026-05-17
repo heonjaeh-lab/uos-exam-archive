@@ -150,30 +150,69 @@ export async function loginAndFetchTimetable(userId, password) {
     await page.type('#user_id', userId, { delay: 15 })
     await page.type('#user_password', password, { delay: 15 })
 
-    // === 4. 로그인 버튼 클릭 ===
-    // 시립대 페이지는 보통 form submit 또는 onclick 함수 호출
-    const loginClicked = await page.evaluate(() => {
-      const candidates = [
-        document.querySelector('button[onclick*="login" i]'),
-        document.querySelector('input[type="submit"]'),
-        document.querySelector('#loginBtn, #btnLogin, .btn_login'),
-        document.querySelector('a[onclick*="login" i]'),
-      ].filter(Boolean)
-      if (candidates[0]) {
-        candidates[0].click()
-        return true
-      }
-      // 폼 직접 submit
-      const form = document.querySelector('form[name="loginFrm"], form#loginForm, form')
-      if (form) {
-        form.submit()
-        return true
-      }
-      return false
-    })
+    // === 4. 로그인 버튼 찾기 + 클릭 ===
+    // 핵심: 시립대 포털은 ML4WebVKey JS가 form submit 이벤트에 훅해서
+    // 비밀번호를 암호화함. 따라서 form.submit() 직접 호출이나 JS .click()으로는
+    // 암호화가 안 걸리고 평문 비번이 전송됨 → 로그인 실패.
+    //
+    // 해결: Puppeteer native click (실제 마우스 이벤트)을 사용해서 모든 핸들러 트리거.
 
+    // (1) 가장 자연스러운 셀렉터들을 먼저 시도
+    const knownSelectors = [
+      'button[onclick*="login" i]',
+      'input[type="submit"]',
+      '#loginBtn',
+      '#btnLogin',
+      '.btn_login',
+      '.btnLogin',
+      'a[onclick*="login" i]',
+      'button.btn-login',
+      'a.btn-login',
+    ]
+    let loginSelector = null
+    for (const sel of knownSelectors) {
+      const found = await page.$(sel)
+      if (found) {
+        loginSelector = sel
+        break
+      }
+    }
+
+    // (2) 그래도 못 찾으면 "로그인" 텍스트가 들어간 클릭 가능 요소 탐색
+    if (!loginSelector) {
+      const xpath = await page.evaluateHandle(() => {
+        const all = Array.from(
+          document.querySelectorAll('button, a, input[type="button"], input[type="submit"], [role="button"]'),
+        )
+        const match = all.find((el) => {
+          const t = (el.innerText || el.value || '').trim()
+          return /로그인|LOGIN|Login|^Log\s*in$/.test(t)
+        })
+        if (match) {
+          // 임시 id 부여
+          if (!match.id) match.id = '__uos_login_btn__'
+          return match.id
+        }
+        return null
+      })
+      const tempId = await xpath.jsonValue()
+      if (tempId) loginSelector = `#${tempId}`
+    }
+
+    let loginClicked = false
+    if (loginSelector) {
+      try {
+        // Puppeteer native click → 실제 mousedown/mouseup/click 이벤트 발생
+        // → ML4WebVKey 같은 이벤트 핸들러가 정상 동작
+        await page.click(loginSelector)
+        loginClicked = true
+      } catch (e) {
+        loginClicked = false
+      }
+    }
+
+    // (3) 그래도 안 되면 Enter 키 (form submit 트리거 — 핸들러도 같이 작동)
     if (!loginClicked) {
-      // Enter 키로 폼 제출 시도
       await page.focus('#user_password')
       await page.keyboard.press('Enter')
     }
@@ -188,17 +227,47 @@ export async function loginAndFetchTimetable(userId, password) {
     // === 6. 로그인 실패 감지 ===
     const finalUrl = page.url()
     if (!finalUrl.includes('wise.uos.ac.kr')) {
-      const errorMsg = await page
+      // 페이지 상태를 자세히 수집해서 디버그용으로 같이 반환
+      const pageState = await page
         .evaluate(() => {
-          const text = document.body.innerText || ''
-          if (text.includes('일치하지 않')) return '아이디 또는 비밀번호가 일치하지 않습니다.'
-          if (text.includes('잠금') || text.includes('5회')) return '계정이 잠겼을 수 있습니다. 포털에서 직접 확인해주세요.'
-          return null
+          const text = (document.body.innerText || '').trim()
+          // 화면에 보이는 에러/안내 메시지 추출 (alert 박스, 빨간 글씨 등)
+          const alerts = Array.from(
+            document.querySelectorAll(
+              '.alert, .error, .msg, [class*="error"], [class*="alert"], [class*="warn"]',
+            ),
+          )
+            .map((el) => el.innerText?.trim())
+            .filter(Boolean)
+          return {
+            url: location.href,
+            title: document.title,
+            bodySnippet: text.slice(0, 500),
+            alerts: alerts.slice(0, 5),
+            hasUserIdField: !!document.querySelector('#user_id'),
+            hasPasswordField: !!document.querySelector('#user_password'),
+          }
         })
-        .catch(() => null)
+        .catch(() => ({}))
+
+      // 알려진 에러 패턴 분류
+      let errorMsg = null
+      const allText = (pageState.bodySnippet + ' ' + (pageState.alerts || []).join(' ')) || ''
+      if (allText.includes('일치하지 않')) errorMsg = '아이디 또는 비밀번호가 일치하지 않습니다.'
+      else if (allText.includes('잠금') || allText.includes('5회'))
+        errorMsg = '계정이 잠겼을 수 있습니다. 포털에서 직접 확인해주세요.'
+      else if (pageState.hasUserIdField) errorMsg = '로그인 폼에서 멈췄어요 — 버튼 클릭이 동작하지 않거나 인증이 거부됐을 가능성.'
+
       return {
         success: false,
         error: errorMsg || '로그인 실패. 아이디/비밀번호를 확인해주세요.',
+        // 디버그용 - 어느 단계에서 멈췄는지 파악용
+        debug: {
+          loginSelector,
+          loginClicked,
+          finalUrl,
+          pageState,
+        },
       }
     }
 
