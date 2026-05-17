@@ -39,7 +39,26 @@ export default {
     try {
       let response
       if (url.pathname === '/api/health') {
-        response = json({ status: 'ok', timestamp: new Date().toISOString() })
+        response = json({
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          colo: request.cf?.colo || 'unknown',
+          country: request.cf?.country || 'unknown',
+        })
+      } else if (url.pathname === '/api/debug') {
+        // 시립대 페이지 fetch 결과 직접 확인
+        const r = await fetch('https://www.uos.ac.kr/food/placeList.do?rstcde=020', {
+          headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'ko-KR,ko;q=0.9' },
+        })
+        const html = await r.text()
+        response = json({
+          colo: request.cf?.colo,
+          status: r.status,
+          contentType: r.headers.get('content-type'),
+          htmlLength: html.length,
+          has주간별: html.includes('주간별'),
+          htmlSnippet: html.slice(0, 500),
+        })
       } else if (url.pathname === '/api/cafeteria') {
         response = await handleCafeteria(url.searchParams)
       } else if (url.pathname === '/api/notice') {
