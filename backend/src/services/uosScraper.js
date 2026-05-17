@@ -137,13 +137,44 @@ export async function loginAndFetchTimetable(userId, password) {
     })
 
     // === 2. 포털 로그인 페이지 진입 (SSO 자동 처리) ===
+    // portal.uos.ac.kr → sso.uos.ac.kr 자동 리다이렉트가 있어서 networkidle이 필요
     await page.goto(PORTAL_LOGIN_URL, {
-      waitUntil: 'domcontentloaded', // networkidle2 → DOM만 (3-5초 절약)
-      timeout: 25000,
+      waitUntil: 'networkidle2',
+      timeout: 30000,
     })
 
-    // 학번/비밀번호 입력 필드 대기
-    await page.waitForSelector('#user_id', { timeout: 15000 })
+    // 학번/비밀번호 입력 필드 대기 — 못 찾으면 페이지 상태 캡처해서 반환
+    try {
+      await page.waitForSelector('#user_id', { timeout: 15000 })
+    } catch (e) {
+      // 페이지 구조 진단 정보 수집
+      const diag = await page.evaluate(() => {
+        const inputs = Array.from(document.querySelectorAll('input')).map((i) => ({
+          id: i.id || null,
+          name: i.name || null,
+          type: i.type || null,
+          placeholder: i.placeholder || null,
+        }))
+        const frames = Array.from(document.querySelectorAll('iframe, frame')).map((f) => ({
+          src: f.src || null,
+          name: f.name || null,
+          id: f.id || null,
+        }))
+        return {
+          url: location.href,
+          title: document.title,
+          inputs: inputs.slice(0, 20),
+          frames,
+          bodySnippet: (document.body?.innerText || '').slice(0, 500),
+        }
+      }).catch(() => ({}))
+
+      return {
+        success: false,
+        error: '로그인 페이지의 아이디 입력 필드를 찾지 못했어요. 시립대 포털 구조가 변경됐을 가능성.',
+        debug: { stage: 'waitForUserIdField', ...diag },
+      }
+    }
     await page.waitForSelector('#user_password', { timeout: 15000 })
 
     // === 3. 학번/비밀번호 입력 (ML4WebVKey가 자동 암호화) ===
