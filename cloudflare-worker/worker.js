@@ -16,7 +16,8 @@ const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 const ALLOWED_ORIGINS = [
-  'https://haheonjae.github.io',
+  'https://heonjaeh-lab.github.io', // 실제 GitHub Pages 호스팅 도메인
+  'https://haheonjae.github.io', // 구 도메인 (호환 유지)
   'http://localhost:5173',
   'http://localhost:5174',
 ]
