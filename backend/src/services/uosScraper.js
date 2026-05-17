@@ -51,7 +51,7 @@ const USER_AGENT =
  */
 export async function loginAndFetchTimetable(userId, password) {
   if (!userId || !password) {
-    return { success: false, error: '학번과 비밀번호가 필요합니다.' }
+    return { success: false, error: '아이디와 비밀번호가 필요합니다.' }
   }
 
   let browser = null
@@ -152,14 +152,14 @@ export async function loginAndFetchTimetable(userId, password) {
       const errorMsg = await page
         .evaluate(() => {
           const text = document.body.innerText || ''
-          if (text.includes('일치하지 않')) return '학번 또는 비밀번호가 일치하지 않습니다.'
+          if (text.includes('일치하지 않')) return '아이디 또는 비밀번호가 일치하지 않습니다.'
           if (text.includes('잠금') || text.includes('5회')) return '계정이 잠겼을 수 있습니다. 포털에서 직접 확인해주세요.'
           return null
         })
         .catch(() => null)
       return {
         success: false,
-        error: errorMsg || '로그인 실패. 학번/비밀번호를 확인해주세요.',
+        error: errorMsg || '로그인 실패. 아이디/비밀번호를 확인해주세요.',
       }
     }
 

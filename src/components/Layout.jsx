@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { getSessionAvatar } from '../utils/randomAvatar'
-import { useUser } from '../utils/user'
+import { useUser, isNumericStudentId } from '../utils/user'
 
 /* ─── Icons (시안 그대로) ───────────────────────────────────── */
 const SVG = ({ children, cls = '' }) => (
@@ -139,10 +139,12 @@ function TopBar({ activePath, onOpenMobileNav }) {
               />
               <div style={{ lineHeight: 1.2 }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>
-                  {user.name || `학번 ${user.studentId}`}
+                  {user.name || user.studentId}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--c-text-3)' }}>
-                  자유전공 · {user.studentId?.slice(0, 4)}학번
+                  {isNumericStudentId(user.studentId)
+                    ? `자유전공 · ${user.studentId.slice(0, 4)}학번`
+                    : '자유전공학부'}
                 </div>
               </div>
             </div>

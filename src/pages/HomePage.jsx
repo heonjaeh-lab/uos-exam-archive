@@ -5,7 +5,7 @@ import { fetchCafeterias } from '../api/cafeteria'
 import { fetchNoticeBoard } from '../api/notice'
 import { parseClassNm } from '../utils/parseClassNm'
 import { getSessionAvatar } from '../utils/randomAvatar'
-import { useUser } from '../utils/user'
+import { useUser, isNumericStudentId } from '../utils/user'
 import PortalLoginModal from '../components/PortalLoginModal'
 
 const STORAGE_KEY = 'uos-timetable-v1'
@@ -360,10 +360,12 @@ function MyInfoCard({ user }) {
           />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 700 }}>
-              {user?.name || `학번 ${user?.studentId}`}
+              {user?.name || user?.studentId}
             </div>
             <div style={{ fontSize: 12, color: 'var(--c-text-3)' }}>
-              자유전공학부 · {user?.studentId?.slice(0, 4)}학번
+              {isNumericStudentId(user?.studentId)
+                ? `자유전공학부 · ${user.studentId.slice(0, 4)}학번`
+                : '자유전공학부'}
             </div>
           </div>
         </div>
@@ -461,7 +463,7 @@ function LoginPromptCard({ onLogin }) {
             textAlign: 'center',
           }}
         >
-          비밀번호는 저장되지 않아요 · 학번만 식별용으로 사용
+          비밀번호는 저장되지 않아요 · 포털 아이디만 식별용으로 사용
         </p>
       </div>
     </section>

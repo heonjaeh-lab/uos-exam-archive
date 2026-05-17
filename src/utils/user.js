@@ -12,9 +12,23 @@ import { useState, useEffect } from 'react'
 const STORAGE_KEY = 'uos-user'
 
 /**
- * 학번 형식 검증
+ * 사용자 식별자 형식 검증
+ *
+ * 포털 아이디는 학번(숫자)일 수도 있고, 이메일(또는 일반 문자열)일 수도 있음.
+ *   - 학번: 6~10자리 숫자
+ *   - 이메일/일반: 3자 이상이고 공백 없는 문자열
  */
 function isValidStudentId(id) {
+  const s = String(id || '').trim()
+  if (!s) return false
+  if (/\s/.test(s)) return false
+  return s.length >= 3 && s.length <= 100
+}
+
+/**
+ * 학번(숫자) 형식인지 확인 — 표시용 (4자리 입학년도 추출 등에 사용)
+ */
+export function isNumericStudentId(id) {
   return /^\d{6,10}$/.test(String(id || ''))
 }
 
@@ -55,7 +69,7 @@ export function getStoredUser() {
  */
 export function saveUser({ studentId, token, name }) {
   if (!isValidStudentId(studentId)) {
-    throw new Error('학번 형식이 올바르지 않아요.')
+    throw new Error('아이디 형식이 올바르지 않아요.')
   }
   const user = {
     studentId: String(studentId),

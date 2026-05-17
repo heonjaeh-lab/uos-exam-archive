@@ -37,7 +37,7 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e?.preventDefault()
     if (!userId || !password) {
-      setError('학번과 비밀번호를 모두 입력해주세요.')
+      setError('아이디와 비밀번호를 모두 입력해주세요.')
       return
     }
 
@@ -188,17 +188,16 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="uos-field">
                 <label className="uos-field__label">
-                  학번 <span className="req">*</span>
+                  포털 아이디 <span className="req">*</span>
                 </label>
                 <input
                   className="uos-input"
                   type="text"
                   value={userId}
-                  onChange={(e) => setUserId(e.target.value.replace(/\D/g, ''))}
-                  placeholder="2026XXXX"
+                  onChange={(e) => setUserId(e.target.value.trim())}
+                  placeholder="학번 또는 이메일"
                   autoComplete="username"
                   disabled={loading}
-                  inputMode="numeric"
                 />
               </div>
 
