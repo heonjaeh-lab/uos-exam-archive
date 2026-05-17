@@ -1,37 +1,58 @@
 /**
  * 학식 데이터 클라이언트
  *
- * 우리 백엔드(Render)가 시립대 학식 페이지를 크롤링해서 JSON으로 변환해줌.
+ * 데이터 출처: public/data/cafeteria.json (정적 파일)
+ *   - 매일 11시 관리자 컴퓨터에서 시립대 크롤링 (scripts/update-cafeteria.mjs)
+ *   - Git push → GitHub Pages 자동 배포 → 사이트 갱신
+ *
+ * 시립대 본 도메인(www.uos.ac.kr)이 클라우드 호스팅 IP를 차단해서
+ * Render/Cloudflare 같은 서버 측 크롤링 불가능 → 정적 데이터 방식.
  */
-
-// 학식 크롤링은 한국 IP 필요 → Cloudflare Workers 우선, 없으면 백엔드
-const BACKEND_URL =
-  import.meta.env.VITE_CRAWLER_URL ||
-  import.meta.env.VITE_BACKEND_URL ||
-  'http://localhost:3001'
 
 /**
- * 모든 식당의 식단 가져오기
+ * cafeteria.json 데이터 가져오기
  *
- * @param {Date|string} date 날짜 (Date 객체 또는 YYYYMMDD 문자열, 비우면 오늘)
- * @returns {Promise<{date, restaurants: Array}>}
+ * @param {Date|string} date - 표시할 날짜
+ * @returns {Promise<{date, restaurants}>}
  */
 export async function fetchCafeterias(date) {
-  let yyyymmdd = ''
+  let targetMonth, targetDay
   if (date instanceof Date) {
-    const yyyy = date.getFullYear()
-    const mm = String(date.getMonth() + 1).padStart(2, '0')
-    const dd = String(date.getDate()).padStart(2, '0')
-    yyyymmdd = `${yyyy}${mm}${dd}`
-  } else if (typeof date === 'string') {
-    yyyymmdd = date.replace(/\D/g, '').slice(0, 8)
+    targetMonth = date.getMonth() + 1
+    targetDay = date.getDate()
+  } else if (typeof date === 'string' && /^\d{8}$/.test(date)) {
+    targetMonth = parseInt(date.slice(4, 6), 10)
+    targetDay = parseInt(date.slice(6, 8), 10)
+  } else {
+    const d = new Date()
+    targetMonth = d.getMonth() + 1
+    targetDay = d.getDate()
   }
 
-  const url = yyyymmdd
-    ? `${BACKEND_URL}/api/cafeteria?date=${yyyymmdd}`
-    : `${BACKEND_URL}/api/cafeteria`
+  const base = import.meta.env.BASE_URL || '/'
+  const res = await fetch(`${base}data/cafeteria.json?t=${Date.now()}`)
+  if (!res.ok) throw new Error('학식 데이터 로딩 실패')
+  const raw = await res.json()
 
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`학식 로딩 실패: ${res.status}`)
-  return res.json()
+  // 각 식당에서 요청 날짜 데이터만 추출
+  const key = `${targetMonth}-${targetDay}`
+  const restaurants = (raw.restaurants || []).map((r) => {
+    const meals = r.weeklyMeals?.[key] || null
+    const empty = !meals || (!meals.breakfast && !meals.lunch && !meals.dinner)
+    return {
+      ...r,
+      meals: meals || { breakfast: null, lunch: null, dinner: null },
+      empty,
+    }
+  })
+
+  const yyyy = new Date().getFullYear()
+  return {
+    date:
+      typeof date === 'string'
+        ? date
+        : `${yyyy}${String(targetMonth).padStart(2, '0')}${String(targetDay).padStart(2, '0')}`,
+    fetchedAt: raw.fetchedAt,
+    restaurants,
+  }
 }
