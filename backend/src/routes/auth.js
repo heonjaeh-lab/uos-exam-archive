@@ -18,7 +18,7 @@ const loginLimiter = rateLimit({
  * Body: { userId, password }
  * Response: { success, data?, error? }
  *
- * 학번/비밀번호 받아서 시립대 포털 자동 로그인 → 시간표 반환
+ * 포털 아이디(학번 또는 이메일)/비밀번호 받아서 시립대 포털 자동 로그인 → 시간표 반환
  */
 router.post('/login-and-fetch', loginLimiter, async (req, res) => {
   const { userId, password } = req.body || {}
@@ -26,15 +26,20 @@ router.post('/login-and-fetch', loginLimiter, async (req, res) => {
   if (!userId || !password) {
     return res.status(400).json({
       success: false,
-      error: '학번과 비밀번호가 필요합니다.',
+      error: '아이디와 비밀번호가 필요합니다.',
     })
   }
 
-  // 학번 형식 검증 (8자리 숫자가 일반적)
-  if (!/^\d{6,10}$/.test(userId)) {
+  // 아이디 형식 검증 (학번 = 숫자 / 이메일 = 일반 문자열, 공백 금지)
+  const trimmedId = String(userId).trim()
+  if (
+    trimmedId.length < 3 ||
+    trimmedId.length > 100 ||
+    /\s/.test(trimmedId)
+  ) {
     return res.status(400).json({
       success: false,
-      error: '학번 형식이 올바르지 않습니다.',
+      error: '아이디 형식이 올바르지 않습니다.',
     })
   }
 

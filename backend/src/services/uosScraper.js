@@ -43,6 +43,45 @@ const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 /**
+ * WISE 응답에서 강의 행 배열 찾기
+ *
+ * 시립대 WISE(eXBuilder/.NET 기반) 응답 키는 메뉴마다 다름.
+ * 가능한 후보를 순회하면서 행 배열을 찾고, 못 찾으면 최상위 키 중 첫 번째 배열을 사용.
+ */
+function extractRows(parsed) {
+  if (!parsed) return []
+  if (Array.isArray(parsed)) return parsed
+
+  const candidateKeys = [
+    'DS_LIST',
+    'dsList',
+    'ds_list',
+    'DS_OUT',
+    'DS_DATA',
+    'list',
+    'data',
+    'rows',
+    'items',
+    'result',
+    'resultList',
+    'output',
+  ]
+  for (const k of candidateKeys) {
+    if (Array.isArray(parsed[k]) && parsed[k].length > 0) return parsed[k]
+  }
+  // 후보 없으면 최상위 객체 중 첫 번째 배열 값 찾기
+  for (const v of Object.values(parsed)) {
+    if (Array.isArray(v) && v.length > 0) return v
+    if (v && typeof v === 'object') {
+      for (const vv of Object.values(v)) {
+        if (Array.isArray(vv) && vv.length > 0) return vv
+      }
+    }
+  }
+  return []
+}
+
+/**
  * 시립대 포털 자동 로그인 + 시간표 데이터 가져오기
  *
  * @param {string} userId 학번
@@ -220,9 +259,24 @@ export async function loginAndFetchTimetable(userId, password) {
       }
     }
 
+    // === 11. 프론트 호환 구조로 변환 ===
+    // WISE/eXBuilder 응답은 보통 DS_LIST/dsList/list/data/rows 중 하나에 행 배열을 담음.
+    // 정확한 키를 모르므로 후보를 모두 검사 + 평탄화해서 coursesRaw[].raw[] 형태로 변환.
+    const rows = extractRows(parsed)
+    const coursesRaw = rows.map((row) => {
+      if (row && typeof row === 'object') {
+        return { raw: Object.values(row).map((v) => String(v ?? '')) }
+      }
+      return { raw: [String(row ?? '')] }
+    })
+
     return {
       success: true,
-      data: parsed,
+      data: {
+        coursesRaw,
+        // 디버그용: 실제 raw 응답 (구조 파악 후 제거 예정)
+        debug: { rawKeys: Object.keys(parsed || {}), rowCount: rows.length, sample: rows[0] || null },
+      },
     }
   } catch (error) {
     console.error('[uosScraper] 오류:', error.message)
