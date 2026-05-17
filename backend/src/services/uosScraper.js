@@ -35,8 +35,22 @@ const PUPPETEER_OPTIONS = {
     '--disable-gpu',
     '--no-first-run',
     '--no-zygote',
+    // Render 무료 플랜(512MB) 메모리 최적화
+    '--single-process', // 모든 렌더링을 단일 프로세스로 — RAM 절약
+    '--disable-extensions',
+    '--disable-default-apps',
+    '--disable-background-networking',
+    '--disable-background-timer-throttling',
+    '--disable-renderer-backgrounding',
+    '--disable-component-extensions-with-background-pages',
+    '--disable-features=TranslateUI,BlinkGenPropertyTrees',
+    '--mute-audio',
+    '--no-default-browser-check',
+    '--no-pings',
   ],
   executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+  // Chrome 시작 타임아웃 (Render에서 콜드 스타트 시 30초 부족할 수 있음)
+  timeout: 60000,
 }
 
 const USER_AGENT =
