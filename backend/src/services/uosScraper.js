@@ -145,12 +145,13 @@ export async function loginAndFetchTimetable(userId, password) {
       timeout: 30000,
     })
 
-    // 학번/비밀번호 입력 필드 대기 — 못 찾으면 페이지 상태 캡처해서 반환
+    // 학번/비밀번호 입력 필드 대기 — DOM에 존재만 확인 (visible 체크 X)
+    // 진단 결과: #user_id, #user_password는 DOM엔 항상 있지만 첫 진입 시
+    // "Certification login" 탭이 활성화돼서 Basic login의 필드들이 display:none됨.
+    // 따라서 visible:true로 기다리면 영원히 못 찾음 → 먼저 Basic login 탭 활성화.
     try {
-      // visible: true → display:none이 아닐 때까지 대기 (실제로 사용 가능한 상태)
-      await page.waitForSelector('#user_id', { timeout: 40000, visible: true })
+      await page.waitForSelector('#user_id', { timeout: 30000 })
     } catch (e) {
-      // 페이지 구조 진단 정보 수집
       const diag = await page.evaluate(() => {
         const inputs = Array.from(document.querySelectorAll('input')).map((i) => ({
           id: i.id || null,
@@ -179,6 +180,30 @@ export async function loginAndFetchTimetable(userId, password) {
       }
     }
     await page.waitForSelector('#user_password', { timeout: 15000 })
+
+    // === 2.5. Basic login 탭 활성화 ===
+    // SSO 페이지는 두 탭으로 나뉨: Basic login(일반) / Certification login(인증서)
+    // 첫 진입 시 인증서 탭이 활성화돼있을 수 있어서 일반 로그인 탭을 명시적으로 활성화.
+    await page
+      .evaluate(() => {
+        // "Basic login" 또는 "일반" 텍스트 가진 탭/링크 찾기
+        const tabs = Array.from(
+          document.querySelectorAll('a, button, li, [role="tab"], .tab, [class*="tab"]'),
+        )
+        const basicTab = tabs.find((el) => {
+          const t = (el.innerText || el.textContent || '').trim()
+          return /^Basic\s*login$|^일반\s*로그인$|^Basic$|^일반$/i.test(t)
+        })
+        if (basicTab) {
+          basicTab.click()
+          return true
+        }
+        return false
+      })
+      .catch(() => false)
+
+    // 탭 전환 후 필드가 보이도록 잠깐 대기
+    await new Promise((r) => setTimeout(r, 500))
 
     // === 3. 학번/비밀번호 입력 (ML4WebVKey가 자동 암호화) ===
     await page.type('#user_id', userId, { delay: 15 })
