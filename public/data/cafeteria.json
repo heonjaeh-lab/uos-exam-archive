@@ -1,0 +1,37 @@
+{
+  "fetchedAt": "2026-05-17T00:11:38.656Z",
+  "restaurants": [
+    {
+      "code": "020",
+      "name": "학생회관 1층",
+      "shortName": "학생회관",
+      "rstcde": "020",
+      "weeklyMeals": {},
+      "weeklyAvailable": false
+    },
+    {
+      "code": "010",
+      "name": "100주년기념관 이룸라운지",
+      "shortName": "이룸라운지",
+      "rstcde": "010",
+      "weeklyMeals": {},
+      "weeklyAvailable": false
+    },
+    {
+      "code": "030",
+      "name": "양식당",
+      "shortName": "양식당",
+      "rstcde": "030",
+      "weeklyMeals": {},
+      "weeklyAvailable": false
+    },
+    {
+      "code": "040",
+      "name": "자연과학관",
+      "shortName": "자연과학관",
+      "rstcde": "040",
+      "weeklyMeals": {},
+      "weeklyAvailable": false
+    }
+  ]
+}
