@@ -1,0 +1,184 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: 자유전공학부 전용
+      - link "온라인 강의실" [ref=e9] [cursor=pointer]:
+        - /url: https://uclass.uos.ac.kr/
+      - link "카피킬러" [ref=e12] [cursor=pointer]:
+        - /url: https://www.copykiller.com/
+      - link "AI Chat" [ref=e15] [cursor=pointer]:
+        - /url: https://chat.openai.com/
+    - generic [ref=e16]:
+      - link "UOS Archive UOS Archive· 자유전공학부" [ref=e17] [cursor=pointer]:
+        - /url: "#/"
+        - generic "UOS Archive" [ref=e18]
+        - strong [ref=e21]: UOS Archive· 자유전공학부
+      - navigation [ref=e22]:
+        - link "홈" [ref=e23] [cursor=pointer]:
+          - /url: "#/"
+        - link "기출·자료" [ref=e24] [cursor=pointer]:
+          - /url: "#/archive"
+        - link "학식" [ref=e25] [cursor=pointer]:
+          - /url: "#/cafeteria"
+        - link "시간표" [ref=e26] [cursor=pointer]:
+          - /url: "#/timetable"
+        - link "공지" [ref=e27] [cursor=pointer]:
+          - /url: "#/notice"
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - img [ref=e30]
+          - textbox "과목 · 학식 검색" [ref=e33]
+        - button "알림" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+  - main [ref=e38]:
+    - generic [ref=e39]:
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - generic [ref=e44]: 2026-1학기 · 5월 19일 (화)
+            - heading "자유전공학부의 시간표·학식·기출을 한 자리에." [level=1] [ref=e45]:
+              - text: 자유전공학부의
+              - text: 시간표·학식·기출을 한 자리에.
+            - paragraph [ref=e46]: 자전 학생들을 위한 모든것!
+          - generic [ref=e47]:
+            - link "내 시간표" [ref=e48] [cursor=pointer]:
+              - /url: "#/timetable"
+              - img [ref=e49]
+              - text: 내 시간표
+            - link "오늘 학식" [ref=e52] [cursor=pointer]:
+              - /url: "#/cafeteria"
+              - img [ref=e53]
+              - text: 오늘 학식
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - img [ref=e57]
+            - 'textbox "예: 대학물리학 · 오늘학식" [ref=e60]'
+          - button "검색" [ref=e61] [cursor=pointer]
+      - main [ref=e62]:
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - generic [ref=e65]:
+              - generic [ref=e66]:
+                - generic [ref=e67]:
+                  - img [ref=e68]
+                  - heading "오늘의 수업" [level=3] [ref=e71]
+                  - generic [ref=e72]: 5월 19일 (화)
+                  - link "전체 시간표" [ref=e73] [cursor=pointer]:
+                    - /url: "#/timetable"
+                    - text: 전체 시간표
+                    - img [ref=e74]
+                - generic [ref=e77]:
+                  - img "시간표 비어있음" [ref=e78]
+                  - generic [ref=e79]: 오늘 수업이 없거나 시간표가 비어있어요
+                  - link "시간표 등록하기" [ref=e80] [cursor=pointer]:
+                    - /url: "#/timetable"
+              - generic [ref=e81]:
+                - generic [ref=e82]:
+                  - img [ref=e83]
+                  - heading "오늘의 학식" [level=3] [ref=e85]
+                  - link "전체 식당" [ref=e86] [cursor=pointer]:
+                    - /url: "#/cafeteria"
+                    - text: 전체 식당
+                    - img [ref=e87]
+                - generic [ref=e89]:
+                  - generic [ref=e90]:
+                    - generic [ref=e91]:
+                      - generic [ref=e92]: 학생회관
+                      - generic [ref=e93]: 오징어해장라면
+                    - generic [ref=e94]: 중식
+                  - generic [ref=e95]:
+                    - generic [ref=e96]:
+                      - generic [ref=e97]: 이룸라운지
+                      - generic [ref=e98]: 오븐안동찜닭
+                    - generic [ref=e99]: 중식
+                  - generic [ref=e100]:
+                    - generic [ref=e101]:
+                      - generic [ref=e102]: 양식당
+                      - generic [ref=e103]: 고구마치즈돈까스
+                    - generic [ref=e104]: 중식
+                  - generic [ref=e105]:
+                    - generic [ref=e106]:
+                      - generic [ref=e107]: 자연과학관
+                      - generic [ref=e108]: 모듬순대국밥
+                    - generic [ref=e109]: 중식
+            - generic [ref=e110]:
+              - generic [ref=e111]:
+                - heading "최근 기출 자료" [level=3] [ref=e112]
+                - generic [ref=e113]: 아카이브
+                - link "전체보기" [ref=e114] [cursor=pointer]:
+                  - /url: "#/archive"
+                  - text: 전체보기
+                  - img [ref=e115]
+              - generic [ref=e117]:
+                - link "강의노트 2025 수학 1 - Day 2 수업노트 수학 1" [ref=e118] [cursor=pointer]:
+                  - /url: "#/subject/%EC%88%98%ED%95%99%201"
+                  - generic [ref=e119]:
+                    - generic [ref=e120]: 강의노트
+                    - generic [ref=e121]: "2025"
+                  - generic [ref=e122]: 수학 1 - Day 2 수업노트
+                  - generic [ref=e123]: 수학 1
+                - link "강의노트 2025 수학 1 - Day 3 수업노트 수학 1" [ref=e124] [cursor=pointer]:
+                  - /url: "#/subject/%EC%88%98%ED%95%99%201"
+                  - generic [ref=e125]:
+                    - generic [ref=e126]: 강의노트
+                    - generic [ref=e127]: "2025"
+                  - generic [ref=e128]: 수학 1 - Day 3 수업노트
+                  - generic [ref=e129]: 수학 1
+                - link "강의노트 2025 수학 1 - Day 4 수업노트 수학 1" [ref=e130] [cursor=pointer]:
+                  - /url: "#/subject/%EC%88%98%ED%95%99%201"
+                  - generic [ref=e131]:
+                    - generic [ref=e132]: 강의노트
+                    - generic [ref=e133]: "2025"
+                  - generic [ref=e134]: 수학 1 - Day 4 수업노트
+                  - generic [ref=e135]: 수학 1
+                - link "강의노트 2025 수학 1 - Day 5 수업노트 수학 1" [ref=e136] [cursor=pointer]:
+                  - /url: "#/subject/%EC%88%98%ED%95%99%201"
+                  - generic [ref=e137]:
+                    - generic [ref=e138]: 강의노트
+                    - generic [ref=e139]: "2025"
+                  - generic [ref=e140]: 수학 1 - Day 5 수업노트
+                  - generic [ref=e141]: 수학 1
+                - link "강의노트 2025 수학 1 - Day 6 수업노트 수학 1" [ref=e142] [cursor=pointer]:
+                  - /url: "#/subject/%EC%88%98%ED%95%99%201"
+                  - generic [ref=e143]:
+                    - generic [ref=e144]: 강의노트
+                    - generic [ref=e145]: "2025"
+                  - generic [ref=e146]: 수학 1 - Day 6 수업노트
+                  - generic [ref=e147]: 수학 1
+                - link "강의노트 2025 수학 1 - Day 7 수업노트 수학 1" [ref=e148] [cursor=pointer]:
+                  - /url: "#/subject/%EC%88%98%ED%95%99%201"
+                  - generic [ref=e149]:
+                    - generic [ref=e150]: 강의노트
+                    - generic [ref=e151]: "2025"
+                  - generic [ref=e152]: 수학 1 - Day 7 수업노트
+                  - generic [ref=e153]: 수학 1
+          - complementary [ref=e154]:
+            - generic [ref=e157]:
+              - generic [ref=e158]: UOS PORTAL
+              - heading "시립대 포털로 로그인하면 시간표가 자동으로 와요" [level=3] [ref=e159]:
+                - text: 시립대 포털로 로그인하면
+                - text: 시간표가 자동으로 와요
+              - list [ref=e160]:
+                - listitem [ref=e161]: 본인 수강 강의 자동 등록
+                - listitem [ref=e162]: 다른 기기에서도 같은 시간표 동기화
+                - listitem [ref=e163]: 30일 자동 로그인 유지
+              - button "시립대 포털 연동하기" [ref=e164] [cursor=pointer]:
+                - text: 시립대 포털 연동하기
+                - img [ref=e165]
+              - paragraph [ref=e167]: 비밀번호는 저장되지 않아요 · 포털 아이디만 식별용으로 사용
+            - generic [ref=e168]:
+              - generic [ref=e169]:
+                - img [ref=e170]
+                - heading "학부 공지" [level=3] [ref=e173]
+                - link "+" [ref=e174] [cursor=pointer]:
+                  - /url: "#/notice"
+              - generic [ref=e176]: 불러오는 중...
+  - contentinfo [ref=e177]:
+    - generic [ref=e178]:
+      - generic [ref=e179]:
+        - generic [ref=e180]: 자전
+        - strong [ref=e181]: UOS Archive
+      - generic [ref=e182]:
+        - text: © 2026 made by
+        - link "je_noah" [ref=e183] [cursor=pointer]:
+          - /url: https://www.instagram.com/je_noah/

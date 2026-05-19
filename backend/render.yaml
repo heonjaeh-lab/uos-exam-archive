@@ -24,7 +24,7 @@ services:
       - key: PORT
         value: 3001
       - key: ALLOWED_ORIGINS
-        value: https://heonjaeh-lab.github.io,https://haheonjae.github.io,http://localhost:5173,http://localhost:5174
+        value: https://heonjaeh-lab.github.io,https://haheonjae.github.io,http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174
       - key: JWT_SECRET
         generateValue: true # Render가 자동 생성하는 안전한 랜덤 키
 

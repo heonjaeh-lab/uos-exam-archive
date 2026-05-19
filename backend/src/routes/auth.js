@@ -44,11 +44,11 @@ router.post('/login-and-fetch', loginLimiter, async (req, res) => {
   }
 
   // 비밀번호는 메모리에서만 사용, 로그 절대 X
-  const result = await loginAndFetchTimetable(userId, password)
+  const result = await loginAndFetchTimetable(trimmedId, password)
 
   // 로그인 성공 시 JWT 토큰 발급 (30일 유효)
   if (result.success) {
-    result.token = signToken({ studentId: userId })
+    result.token = signToken({ studentId: trimmedId })
     result.expiresInDays = 30
   }
 

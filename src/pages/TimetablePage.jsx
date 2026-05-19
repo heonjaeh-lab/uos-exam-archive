@@ -6,15 +6,17 @@ import CourseSearchPanel from '../components/CourseSearchPanel'
 import PortalLoginModal from '../components/PortalLoginModal'
 import { useUser, clearUser } from '../utils/user'
 import { loadTimetables, saveTimetables } from '../api/timetableStore'
+import { matchPortalCourses } from '../utils/portalCourseMatch'
 
 const STORAGE_KEY = 'uos-timetable-v1'
 
-// 기본값: 현재 연도 1학기
+// 기본값: 현재 연도 / 현재 정규학기
 const DEFAULT_YEAR = new Date().getFullYear()
+const DEFAULT_TERM = new Date().getMonth() + 1 >= 9 ? TERM.FALL : TERM.SPRING
 
 export default function TimetablePage() {
   const [year, setYear] = useState(DEFAULT_YEAR)
-  const [term, setTerm] = useState(TERM.SPRING)
+  const [term, setTerm] = useState(DEFAULT_TERM)
   const [allCourses, setAllCourses] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -148,9 +150,9 @@ export default function TimetablePage() {
 
   // 포털에서 시간표 자동 가져오기 결과 처리
   const handlePortalImport = (portalData) => {
-    // portalData.coursesRaw 는 백엔드가 긁어온 시간표 raw 데이터
-    // 학수번호+분반번호로 OpenAPI 데이터와 매칭해서 정확한 강의 정보 채우기
-    if (!portalData?.coursesRaw?.length) {
+    const portalRows = portalData?.coursesRaw || portalData?.courses || []
+
+    if (!portalRows.length) {
       setImportStatus({
         type: 'error',
         msg: '포털에서 시간표 데이터를 찾지 못했어요. 본인 시간표 페이지에 강의가 등록되어 있나요?',
@@ -158,30 +160,20 @@ export default function TimetablePage() {
       return
     }
 
-    // 학수번호 패턴: 5자리 숫자 또는 5자리.3자리 (대학원)
-    const subjectNoPattern = /\d{2}[\d.]\d{3}/
-    const matched = []
-    const unmatched = []
+    if (allCourses.length === 0) {
+      setImportStatus({
+        type: 'error',
+        msg: '현재 학기 강의 목록을 아직 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
+      })
+      return
+    }
 
-    portalData.coursesRaw.forEach((row) => {
-      const text = row.raw?.join(' ') || ''
-      const subjectNoMatch = text.match(subjectNoPattern)
-      if (!subjectNoMatch) return
-
-      const subjectNo = subjectNoMatch[0]
-      // OpenAPI 데이터에서 해당 학수번호 찾기 (분반은 첫 번째 매칭으로)
-      const found = allCourses.find((c) => c.SUBJECT_NO === subjectNo)
-      if (found) {
-        matched.push(found)
-      } else {
-        unmatched.push(subjectNo)
-      }
-    })
+    const { matched, unmatched } = matchPortalCourses(portalRows, allCourses)
 
     if (matched.length === 0) {
       setImportStatus({
         type: 'error',
-        msg: '매칭되는 강의를 찾지 못했어요. 학년/학기가 올바른지 확인해주세요.',
+        msg: '매칭되는 강의를 찾지 못했어요. 선택한 연도/학기가 포털 시간표와 같은지 확인해주세요.',
       })
       return
     }

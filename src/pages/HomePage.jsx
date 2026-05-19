@@ -147,15 +147,29 @@ function TodayCafeteriaCard() {
       .finally(() => setLoading(false))
   }, [])
 
-  // 점심(중식)이 있는 식당만 추출
+  // 점심(중식)이 있는 식당만 추출 + 날짜 기반으로 매일 다른 메뉴 1개 선택
+  // (양식당처럼 "고구마치즈돈까스"가 매일 첫 줄에 와도 다른 메뉴가 노출되도록)
   const lunchToday = useMemo(() => {
     if (!data?.restaurants) return []
+    const today = new Date()
+    const daySeed = today.getDate() + today.getMonth() * 31 // 매일 다른 값
     return data.restaurants
       .filter((r) => r.meals?.lunch)
-      .map((r) => ({
-        name: r.shortName || r.name,
-        menu: r.meals.lunch.split(/[·•\n]/)[0].trim().slice(0, 30),
-      }))
+      .map((r) => {
+        const items = r.meals.lunch
+          .split(/[·•\n]/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+        // 식당별로 다른 인덱스 + 매일 회전
+        const seed = daySeed + (r.code ? parseInt(r.code, 10) : 0)
+        const idx = items.length > 0 ? seed % items.length : 0
+        const menu = (items[idx] || items[0] || '').slice(0, 30)
+        return {
+          name: r.shortName || r.name,
+          menu,
+          code: r.code,
+        }
+      })
       .slice(0, 4)
   }, [data])
 
@@ -182,8 +196,9 @@ function TodayCafeteriaCard() {
           </div>
         ) : (
           lunchToday.map((r, i) => (
-            <div
+            <Link
               key={i}
+              to="/cafeteria"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -191,6 +206,18 @@ function TodayCafeteriaCard() {
                 padding: '10px 12px',
                 border: '1px solid var(--c-line)',
                 borderRadius: 8,
+                textDecoration: 'none',
+                color: 'inherit',
+                transition: 'background .12s, border-color .12s, transform .12s',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--c-bg-soft)'
+                e.currentTarget.style.borderColor = 'var(--c-primary-100, var(--c-line))'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.borderColor = 'var(--c-line)'
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -200,7 +227,7 @@ function TodayCafeteriaCard() {
                 </div>
               </div>
               <span className="uos-tag uos-tag--primary">중식</span>
-            </div>
+            </Link>
           ))
         )}
       </div>

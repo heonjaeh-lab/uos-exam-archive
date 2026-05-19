@@ -41,7 +41,8 @@ export function parseClassNm(classNm) {
 
   const blocks = []
   // 패턴: 요일[교시들]/강의실
-  const regex = /([월화수목금토일])\[([0-9,]+)\]\/([^\s,월화수목금토일]+(?:,[0-9]+)?)/g
+  // 강의실 값 안에도 쉼표가 들어갈 수 있어서 다음 ",요일[" 전까지를 한 블록으로 본다.
+  const regex = /([월화수목금토일])\[([0-9,\s]+)\]\/(.+?)(?=,[월화수목금토일]\[|$)/g
   let match
 
   while ((match = regex.exec(classNm)) !== null) {

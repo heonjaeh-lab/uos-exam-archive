@@ -20,6 +20,8 @@ const ALLOWED_ORIGINS = [
   'https://haheonjae.github.io', // 구 도메인 (호환 유지)
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
 ]
 
 // 인메모리 캐시 (Worker 인스턴스 내 - PoP별)

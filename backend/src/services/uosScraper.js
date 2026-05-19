@@ -95,6 +95,100 @@ function extractRows(parsed) {
   return []
 }
 
+const SUBJECT_FIELD_KEYS = [
+  'SUBJECT_NO',
+  'SUBJECTNO',
+  'SUBJ_NO',
+  'SBJT_NO',
+  'SBJCT_NO',
+  'COURSE_NO',
+  'COURSE_CD',
+  'SUBJECT_CD',
+  'SBJT_CD',
+  'SUB_NO',
+]
+
+const DVCL_FIELD_KEYS = [
+  'DVCL_NO',
+  'DVCLNO',
+  'DIVCLS_NO',
+  'CLASS_NO',
+  'CLSS_NO',
+  'BUNBAN',
+  'TLSN_DVCL_NO',
+  'OPEN_CLASS_NO',
+]
+
+const SUBJECT_NAME_KEYS = [
+  'SUBJECT_NM',
+  'SUBJECTNM',
+  'SUBJ_NM',
+  'SBJT_NM',
+  'COURSE_NM',
+  'KOR_SUBJECT_NM',
+]
+
+const PROF_NAME_KEYS = [
+  'PROF_KOR_NM',
+  'PROF_NM',
+  'PROFESSOR_NM',
+  'STAFF_NM',
+  'EMP_NM',
+]
+
+const CLASS_NAME_KEYS = ['CLASS_NM', 'CLASSNM', 'TIME_ROOM', 'LECTURE_TIME', 'ROOM_NM']
+const CREDIT_KEYS = ['CREDIT', 'PNT', 'POINT', 'CRD']
+
+function normalizeKey(key) {
+  return String(key || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+}
+
+function readByKeys(row, keys) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return ''
+
+  const wanted = new Set(keys.map(normalizeKey))
+  for (const [key, value] of Object.entries(row)) {
+    if (wanted.has(normalizeKey(key)) && value !== null && value !== undefined && value !== '') {
+      return String(value).trim()
+    }
+  }
+  return ''
+}
+
+function normalizeSubjectNo(value) {
+  return String(value || '').replace(/\s+/g, '').toUpperCase()
+}
+
+function normalizeDvclNo(value) {
+  const text = String(value || '').trim().toUpperCase()
+  if (!text) return ''
+  const match = text.match(/[A-Z0-9]+/)
+  const token = match ? match[0] : text
+  return token.replace(/^0+(?=\d)/, '')
+}
+
+function normalizePortalRow(row) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) {
+    return {
+      subjectNo: '',
+      dvclNo: '',
+      subjectNm: '',
+      profNm: '',
+      classNm: '',
+      credit: '',
+    }
+  }
+
+  return {
+    subjectNo: normalizeSubjectNo(readByKeys(row, SUBJECT_FIELD_KEYS)),
+    dvclNo: normalizeDvclNo(readByKeys(row, DVCL_FIELD_KEYS)),
+    subjectNm: readByKeys(row, SUBJECT_NAME_KEYS),
+    profNm: readByKeys(row, PROF_NAME_KEYS),
+    classNm: readByKeys(row, CLASS_NAME_KEYS),
+    credit: readByKeys(row, CREDIT_KEYS),
+  }
+}
+
 /**
  * 시립대 포털 자동 로그인 + 시간표 데이터 가져오기
  *
@@ -144,7 +238,7 @@ export async function loginAndFetchTimetable(userId, password) {
         try {
           const text = await response.text()
           capturedResponses.push({ url, body: text })
-        } catch (e) {
+        } catch {
           // 응답 본문 읽기 실패 무시
         }
       }
@@ -165,7 +259,7 @@ export async function loginAndFetchTimetable(userId, password) {
     // 따라서 visible:true로 기다리면 영원히 못 찾음 → 먼저 Basic login 탭 활성화.
     try {
       await page.waitForSelector('#user_id', { timeout: 30000 })
-    } catch (e) {
+    } catch {
       const diag = await page.evaluate(() => {
         const inputs = Array.from(document.querySelectorAll('input')).map((i) => ({
           id: i.id || null,
@@ -279,7 +373,7 @@ export async function loginAndFetchTimetable(userId, password) {
         // → ML4WebVKey 같은 이벤트 핸들러가 정상 동작
         await page.click(loginSelector)
         loginClicked = true
-      } catch (e) {
+      } catch {
         loginClicked = false
       }
     }
@@ -352,11 +446,16 @@ export async function loginAndFetchTimetable(userId, password) {
 
     // === 8. "수강신청확인서" 메뉴 클릭 ===
     const menuClicked = await page.evaluate(() => {
-      const link = Array.from(document.querySelectorAll('a')).find(
-        (a) => a.innerText.trim() === '수강신청확인서',
+      const normalize = (value) => String(value || '').replace(/\s+/g, '')
+      const candidates = Array.from(
+        document.querySelectorAll('a, button, span, div, li, [role="button"], [role="treeitem"]'),
       )
-      if (!link) return false
-      link.click()
+      const item = candidates.find((el) => normalize(el.innerText || el.textContent) === '수강신청확인서')
+      if (!item) return false
+
+      const clickable =
+        item.closest('a, button, [role="button"], [role="treeitem"], [onclick], li') || item
+      clickable.click()
       return true
     })
 
@@ -386,7 +485,7 @@ export async function loginAndFetchTimetable(userId, password) {
     let parsed
     try {
       parsed = JSON.parse(lastResponse.body)
-    } catch (e) {
+    } catch {
       return {
         success: false,
         error: 'JSON 파싱 실패: ' + lastResponse.body.slice(0, 200),
@@ -403,21 +502,38 @@ export async function loginAndFetchTimetable(userId, password) {
 
     // === 11. 프론트 호환 구조로 변환 ===
     // WISE/eXBuilder 응답은 보통 DS_LIST/dsList/list/data/rows 중 하나에 행 배열을 담음.
-    // 정확한 키를 모르므로 후보를 모두 검사 + 평탄화해서 coursesRaw[].raw[] 형태로 변환.
+    // 정확한 키를 모르므로 후보를 모두 검사하고, 원본 객체와 표준화 필드를 함께 내려준다.
     const rows = extractRows(parsed)
     const coursesRaw = rows.map((row) => {
       if (row && typeof row === 'object') {
-        return { raw: Object.values(row).map((v) => String(v ?? '')) }
+        return {
+          raw: Object.values(row).map((v) => String(v ?? '')),
+          row,
+          normalized: normalizePortalRow(row),
+        }
       }
-      return { raw: [String(row ?? '')] }
+      return {
+        raw: [String(row ?? '')],
+        row: null,
+        normalized: normalizePortalRow(null),
+      }
     })
+    const courses = coursesRaw
+      .map((course) => course.normalized)
+      .filter((course) => course.subjectNo || course.subjectNm)
 
     return {
       success: true,
       data: {
         coursesRaw,
+        courses,
         // 디버그용: 실제 raw 응답 (구조 파악 후 제거 예정)
-        debug: { rawKeys: Object.keys(parsed || {}), rowCount: rows.length, sample: rows[0] || null },
+        debug: {
+          rawKeys: Object.keys(parsed || {}),
+          rowCount: rows.length,
+          sample: rows[0] || null,
+          normalizedSample: courses[0] || null,
+        },
       },
     }
   } catch (error) {

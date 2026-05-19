@@ -24,7 +24,7 @@ app.set('trust proxy', 1)
 // 허용된 origin (개발 + 프로덕션)
 const ALLOWED_ORIGINS = (
   process.env.ALLOWED_ORIGINS ||
-  'http://localhost:5173,http://localhost:5174,https://haheonjae.github.io'
+  'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,https://heonjaeh-lab.github.io,https://haheonjae.github.io'
 ).split(',').map((s) => s.trim())
 
 // 미들웨어

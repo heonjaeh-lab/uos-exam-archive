@@ -3,17 +3,18 @@
  *
  * 시립대 wise.uos.ac.kr/COM/* 는 CORS 안 풀어줘서 브라우저에서 직접 호출 불가.
  *
- * 개발 환경: Vite 프록시 사용 (/uos-api → https://wise.uos.ac.kr/COM)
- * 프로덕션 환경: Cloudflare Worker 프록시 (/api/uos/* → wise.uos.ac.kr/COM/*)
+ * Cloudflare Worker 프록시가 있으면 개발/프로덕션 모두 우선 사용.
+ * wise.uos.ac.kr이 일부 해외/클라우드 IP를 차단해서 Vite 직접 프록시는 fallback으로만 둔다.
  */
 
 const API_KEY = import.meta.env.VITE_UOS_API_KEY
 const CRAWLER_URL = import.meta.env.VITE_CRAWLER_URL || ''
 
-// 개발 환경: Vite 프록시, 프로덕션: Cloudflare Worker 프록시
-const BASE_URL = import.meta.env.DEV
-  ? '/uos-api'
-  : `${CRAWLER_URL}/api/uos`
+const BASE_URL = CRAWLER_URL
+  ? `${CRAWLER_URL}/api/uos`
+  : import.meta.env.DEV
+    ? '/uos-api'
+    : '/api/uos'
 
 /**
  * 쿼리스트링으로 변환
@@ -29,14 +30,23 @@ function toQuery(params) {
  * 시립대 API 공통 호출 함수
  */
 async function callApi(endpoint, params = {}) {
+  if (!API_KEY) throw new Error('UOS API 키가 설정되지 않았어요.')
+
   const query = toQuery({ apiKey: API_KEY, ...params })
   const url = `${BASE_URL}/${endpoint}?${query}`
 
   const res = await fetch(url)
-  if (!res.ok) throw new Error(`UOS API 오류 ${res.status}`)
+  const text = await res.text()
 
-  const data = await res.json()
-  return data
+  if (!res.ok) {
+    throw new Error(`UOS API 오류 ${res.status}: ${text.slice(0, 120)}`)
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error(`UOS API 응답을 JSON으로 해석하지 못했어요: ${text.slice(0, 120)}`)
+  }
 }
 
 /**

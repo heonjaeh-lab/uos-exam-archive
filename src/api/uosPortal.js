@@ -21,9 +21,26 @@ export async function loginAndFetchTimetable(userId, password) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, password }),
     })
-    const data = await res.json()
+    const text = await res.text()
+    let data
+    try {
+      data = JSON.parse(text)
+    } catch {
+      return {
+        success: false,
+        error: `백엔드 응답을 처리하지 못했어요. (${res.status})`,
+      }
+    }
+
+    if (!res.ok && !data?.error) {
+      return {
+        success: false,
+        error: `백엔드 오류 ${res.status}`,
+      }
+    }
+
     return data
-  } catch (error) {
+  } catch {
     return {
       success: false,
       error:
