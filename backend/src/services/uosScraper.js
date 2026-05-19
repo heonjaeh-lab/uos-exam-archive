@@ -706,6 +706,100 @@ export async function loginAndFetchTimetable(userId, password) {
       }
     }
 
+    // === 최종 폴백: 페이지 DOM에서 강의 코드 패턴 직접 추출 ===
+    // API 응답이 없거나 알 수 없는 형태일 때, 로그인된 WISE 페이지에 분명히 시간표가
+    // 표시되어 있으므로 DOM/텍스트에서 강의 코드(XX.XXX) + 시간/장소/교수명을 긁어온다.
+    if (capturedResponses.length === 0) {
+      // 페이지 끝까지 스크롤 — lazy-load 위젯 강제 트리거
+      await page
+        .evaluate(async () => {
+          window.scrollTo(0, document.body.scrollHeight)
+          await new Promise((r) => setTimeout(r, 500))
+          window.scrollTo(0, 0)
+        })
+        .catch(() => {})
+      await page.waitForNetworkIdle({ idleTime: 800, timeout: 5000 }).catch(() => {})
+
+      const domScraped = await page
+        .evaluate(() => {
+          const subjectNoPattern = /\b\d{2}[\d.]\d{3}\b/g
+
+          // 1) 모든 table의 td 셀들을 보면서 강의 코드 포함 셀과 그 주변 정보 수집
+          const courses = []
+          const seenSubjects = new Set()
+
+          const tables = Array.from(document.querySelectorAll('table'))
+          for (const table of tables) {
+            const rows = Array.from(table.querySelectorAll('tr'))
+            for (const tr of rows) {
+              const cells = Array.from(tr.cells || []).map((td) => td.innerText?.trim() || '')
+              const rowText = cells.join(' | ')
+              const matches = rowText.match(subjectNoPattern)
+              if (!matches) continue
+              for (const subjectNo of matches) {
+                if (seenSubjects.has(subjectNo)) continue
+                seenSubjects.add(subjectNo)
+                courses.push({ subjectNo, raw: cells })
+              }
+            }
+          }
+
+          // 2) table 밖의 영역도 — div/li 등 모든 요소 텍스트에서 강의 코드 찾기
+          if (courses.length === 0) {
+            const allElems = Array.from(document.querySelectorAll('td, div, li, p, span'))
+            for (const el of allElems) {
+              const t = (el.innerText || '').trim()
+              if (!t || t.length > 300) continue
+              const matches = t.match(subjectNoPattern)
+              if (!matches) continue
+              for (const subjectNo of matches) {
+                if (seenSubjects.has(subjectNo)) continue
+                seenSubjects.add(subjectNo)
+                courses.push({ subjectNo, raw: [t] })
+              }
+            }
+          }
+
+          return {
+            url: location.href,
+            title: document.title,
+            courseCount: courses.length,
+            courses: courses.slice(0, 50),
+            bodyTextSample: (document.body?.innerText || '').slice(0, 500),
+          }
+        })
+        .catch(() => null)
+
+      if (domScraped && domScraped.courseCount > 0) {
+        // DOM에서 강의 추출 성공 → coursesRaw 형태로 변환해서 즉시 반환
+        const coursesRaw = domScraped.courses.map((c) => ({
+          raw: c.raw,
+          row: { SUBJECT_NO: c.subjectNo, RAW_TEXT: c.raw.join(' ') },
+          normalized: {
+            subjectNo: c.subjectNo,
+            dvclNo: '',
+            subjectNm: '',
+            profNm: '',
+            classNm: c.raw.join(' '),
+            credit: '',
+          },
+        }))
+        return {
+          success: true,
+          data: {
+            coursesRaw,
+            courses: coursesRaw.map((c) => c.normalized),
+            debug: {
+              source: 'dom-scrape',
+              url: domScraped.url,
+              extractedCount: domScraped.courseCount,
+              note: 'API 응답을 못 잡아서 DOM에서 직접 강의 코드 추출. 강의명/교수명 채워지지 않을 수 있음.',
+            },
+          },
+        }
+      }
+    }
+
     if (capturedResponses.length === 0) {
       // 디버그: 모든 캡처된 URL + 첫 응답 샘플 + 메뉴 클릭 결과
       const capturedUrls = allCaptured.map((c) => c.url)
