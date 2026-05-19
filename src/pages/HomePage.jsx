@@ -536,7 +536,7 @@ export default function HomePage() {
               </div>
               <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1.25 }}>
                 자유전공학부의<br />
-                시간표·학식·기출을 <span style={{ color: 'var(--c-primary)' }}>한 자리에</span>.
+                시간표·학식·기출·공지를 <span style={{ color: 'var(--c-primary)' }}>한 자리에</span>.
               </h1>
               <p style={{ margin: '10px 0 0', fontSize: 14, color: 'var(--c-text-2)', maxWidth: 520 }}>
                 자전 학생들을 위한 모든것!
