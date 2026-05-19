@@ -1,7 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import examsData from '../data/exams.json'
 import ExamCard from '../components/ExamCard'
-import AiChat from '../components/AiChat'
 
 export default function SubjectPage() {
   const { subjectName } = useParams()
@@ -33,8 +32,6 @@ export default function SubjectPage() {
           <p>아직 등록된 족보가 없습니다</p>
         </div>
       )}
-
-      <AiChat subject={decodedName} />
     </div>
   )
 }

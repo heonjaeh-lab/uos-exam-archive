@@ -4,10 +4,9 @@
  * Chrome MCP로 실제 시립대 WISE 시스템 분석 결과 반영:
  *
  * 1. 로그인 흐름
- *    portal.uos.ac.kr/user/login.face
- *      → sso.uos.ac.kr/svc/tk/Auth.eps (자동 SSO redirect)
+ *    sso.uos.ac.kr/svc/tk/Auth.eps?ac=Y&id=portal&ifa=N
  *      → 학번/비밀번호 입력 (ML4WebVKey가 자동 암호화)
- *      → SSO 인증 성공 → wise.uos.ac.kr/index.do
+ *      → SSO 인증 성공 → wise.uos.ac.kr/index.do 명시 진입
  *
  * 2. 데이터 가져오기 흐름
  *    "수강신청확인서" 메뉴 클릭 (사이드바)
@@ -23,7 +22,7 @@
 
 import puppeteer from 'puppeteer'
 
-const PORTAL_LOGIN_URL = 'https://portal.uos.ac.kr/user/login.face'
+const PORTAL_LOGIN_URL = 'https://sso.uos.ac.kr/svc/tk/Auth.eps?ac=Y&id=portal&ifa=N'
 const WISE_INDEX_URL = 'https://wise.uos.ac.kr/index.do'
 
 const PUPPETEER_OPTIONS = {
@@ -189,6 +188,46 @@ function normalizePortalRow(row) {
   }
 }
 
+async function collectPageState(page) {
+  return page
+    .evaluate(() => {
+      const text = (document.body?.innerText || '').trim()
+      const inputs = Array.from(document.querySelectorAll('input')).map((i) => ({
+        id: i.id || null,
+        name: i.name || null,
+        type: i.type || null,
+        title: i.title || null,
+        placeholder: i.placeholder || null,
+      }))
+      const buttons = Array.from(document.querySelectorAll('button, input[type="button"], input[type="submit"]'))
+        .map((el) => ({
+          id: el.id || null,
+          type: el.type || null,
+          title: el.title || null,
+          text: (el.innerText || el.value || '').trim(),
+          onclick: el.getAttribute('onclick') || null,
+        }))
+      const alerts = Array.from(
+        document.querySelectorAll(
+          '.alert, .error, .msg, [class*="error"], [class*="alert"], [class*="warn"]',
+        ),
+      )
+        .map((el) => el.innerText?.trim())
+        .filter(Boolean)
+      return {
+        url: location.href,
+        title: document.title,
+        bodySnippet: text.slice(0, 800),
+        inputs: inputs.slice(0, 30),
+        buttons: buttons.slice(0, 30),
+        alerts: alerts.slice(0, 5),
+        hasUserIdField: !!document.querySelector('#user_id'),
+        hasPasswordField: !!document.querySelector('#user_password'),
+      }
+    })
+    .catch(() => ({}))
+}
+
 /**
  * 시립대 포털 자동 로그인 + 시간표 데이터 가져오기
  *
@@ -269,35 +308,15 @@ export async function loginAndFetchTimetable(userId, password) {
     // 따라서 visible:true로 기다리면 영원히 못 찾음 → 먼저 Basic login 탭 활성화.
     try {
       await page.waitForSelector('#user_id', { timeout: 30000 })
+      await page.waitForSelector('#user_password', { timeout: 15000 })
     } catch {
-      const diag = await page.evaluate(() => {
-        const inputs = Array.from(document.querySelectorAll('input')).map((i) => ({
-          id: i.id || null,
-          name: i.name || null,
-          type: i.type || null,
-          placeholder: i.placeholder || null,
-        }))
-        const frames = Array.from(document.querySelectorAll('iframe, frame')).map((f) => ({
-          src: f.src || null,
-          name: f.name || null,
-          id: f.id || null,
-        }))
-        return {
-          url: location.href,
-          title: document.title,
-          inputs: inputs.slice(0, 20),
-          frames,
-          bodySnippet: (document.body?.innerText || '').slice(0, 500),
-        }
-      }).catch(() => ({}))
-
+      const diag = await collectPageState(page)
       return {
         success: false,
-        error: '로그인 페이지의 아이디 입력 필드를 찾지 못했어요. 시립대 포털 구조가 변경됐을 가능성.',
-        debug: { stage: 'waitForUserIdField', ...diag },
+        error: '로그인 페이지의 아이디/비밀번호 입력 필드를 찾지 못했어요. 시립대 SSO 구조가 변경됐거나 서버 접속이 차단됐을 가능성.',
+        debug: { stage: 'waitForLoginFields', ...diag },
       }
     }
-    await page.waitForSelector('#user_password', { timeout: 15000 })
 
     // === 2.5. Basic login 탭 활성화 ===
     // SSO 페이지는 일반 로그인/인증 로그인 탭으로 나뉜다. 일반 로그인 폼을 기준으로 조작한다.
@@ -417,27 +436,7 @@ export async function loginAndFetchTimetable(userId, password) {
       await page.waitForSelector('body', { timeout: 5000 }).catch(() => {})
 
       // 페이지 상태를 자세히 수집해서 디버그용으로 같이 반환
-      const pageState = await page
-        .evaluate(() => {
-          const text = (document.body.innerText || '').trim()
-          // 화면에 보이는 에러/안내 메시지 추출 (alert 박스, 빨간 글씨 등)
-          const alerts = Array.from(
-            document.querySelectorAll(
-              '.alert, .error, .msg, [class*="error"], [class*="alert"], [class*="warn"]',
-            ),
-          )
-            .map((el) => el.innerText?.trim())
-            .filter(Boolean)
-          return {
-            url: location.href,
-            title: document.title,
-            bodySnippet: text.slice(0, 800),
-            alerts: alerts.slice(0, 5),
-            hasUserIdField: !!document.querySelector('#user_id'),
-            hasPasswordField: !!document.querySelector('#user_password'),
-          }
-        })
-        .catch(() => ({}))
+      const pageState = await collectPageState(page)
 
       // 알려진 에러 패턴 분류
       let errorMsg = null
