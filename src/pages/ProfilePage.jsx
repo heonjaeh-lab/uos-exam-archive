@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useUser, clearUser, isNumericStudentId } from '../utils/user'
+import { isAdmin } from '../utils/admin'
 import { getSessionAvatar } from '../utils/randomAvatar'
 
 const TIMETABLE_KEY = 'uos-timetable-v1'
@@ -179,6 +180,39 @@ export default function ProfilePage() {
           <Row label="자동 로그인" value="활성 (1년)" />
         </div>
       </section>
+
+      {/* 관리자 전용 */}
+      {isAdmin(user) && (
+        <section className="uos-card" style={{ marginTop: 16 }}>
+          <div className="uos-card__hd" style={{ padding: '14px 18px' }}>
+            <h3 style={{ fontSize: 14 }}>관리자</h3>
+            <span className="uos-tag uos-tag--primary uos-tag--dot">ADMIN</span>
+          </div>
+          <Link
+            to="/admin"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 18px',
+              borderTop: '1px solid var(--c-line)',
+              textDecoration: 'none',
+              color: 'inherit',
+              transition: 'background .12s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--c-bg-soft)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <span style={{ flex: 1 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600 }}>관리자 대시보드</div>
+              <div style={{ fontSize: 11.5, color: 'var(--c-text-3)', marginTop: 2 }}>
+                방문자 통계, 로그인 기록, 사용자 목록 확인
+              </div>
+            </span>
+            <Icon.chev cls="uos-icon--sm" />
+          </Link>
+        </section>
+      )}
 
       {/* 액션 */}
       <section className="uos-card" style={{ marginTop: 16 }}>

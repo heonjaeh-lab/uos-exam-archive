@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// 서울시립대 자유전공학부 아카이브 — Firestore 보안 규칙
+//
+// 인증 모델: 시립대 포털 SSO 기반 자체 JWT (Firebase Auth 미사용)
+//   → request.auth가 항상 null이므로 클라이언트 측 신뢰 기반
+//   → 민감하지 않은 데이터(시간표/방문 통계)만 저장
+//
+// 적용 방법:
+//   1. Firebase Console → uos-exam-archive 프로젝트
+//   2. Firestore Database → Rules 탭
+//   3. 이 파일 내용 붙여넣기 → Publish
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 시간표 — 본인 학번 키로 저장
+    // (UI 단에서 본인 학번으로만 read/write하므로 사실상 안전)
+    match /timetables/{studentId} {
+      allow read, write: if true;
+    }
+
+    // 페이지 방문 기록 — 분석용
+    // create: 누구나 가능 (방문 발생 시)
+    // read: 관리자 UI에서만 조회 (UI 게이트)
+    // update/delete: 금지 (기록 변조 방지)
+    match /visits/{doc} {
+      allow create: if request.resource.data.keys().hasAll(['studentId', 'path', 'timestamp']);
+      allow read: if true;
+      allow update, delete: if false;
+    }
+
+    // 로그인 이벤트 — 분석용
+    match /logins/{doc} {
+      allow create: if request.resource.data.keys().hasAll(['studentId', 'success', 'timestamp']);
+      allow read: if true;
+      allow update, delete: if false;
+    }
+
+    // 사용자 누적 정보 (방문 횟수, firstSeen, lastSeen)
+    match /users/{studentId} {
+      allow create, read, update: if true;
+      allow delete: if false;
+    }
+
+    // 그 외 모든 경로 거부
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

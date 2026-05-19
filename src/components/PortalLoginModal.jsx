@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { loginAndFetchTimetable, pingBackend } from '../api/uosPortal'
 import { saveUser } from '../utils/user'
+import { logLogin } from '../api/analytics'
+import { isAdmin } from '../utils/admin'
 
 const SVG = ({ children, cls = '' }) => (
   <svg viewBox="0 0 24 24" className={`uos-icon ${cls}`}>{children}</svg>
@@ -94,8 +96,12 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
 
     try {
       const result = await loginAndFetchTimetable(userId, password)
+      // 로그인 이벤트 기록 (관리자 본인은 제외)
+      if (!isAdmin({ studentId: userId })) {
+        logLogin({ studentId: userId, success: !!result.success })
+      }
       if (result.success) {
-        // 토큰까지 저장 (30일 유효) - 이후 시립대 호출 없이 자동 인증
+        // 토큰까지 저장 (1년 유효) - 이후 시립대 호출 없이 자동 인증
         saveUser({ studentId: userId, token: result.token })
         onSuccess?.(result.data)
         setPassword('')

@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getSessionAvatar } from '../utils/randomAvatar'
 import { useUser, isNumericStudentId } from '../utils/user'
+import { isAdmin } from '../utils/admin'
+import { logVisit } from '../api/analytics'
 
 /* ─── Icons (시안 그대로) ───────────────────────────────────── */
 const SVG = ({ children, cls = '' }) => (
@@ -281,6 +283,14 @@ function Footer() {
 export default function Layout({ children }) {
   const location = useLocation()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const user = useUser()
+
+  // 페이지 방문 자동 기록 (로그인된 사용자만, 관리자 본인 활동은 제외)
+  useEffect(() => {
+    if (!user?.studentId) return
+    if (isAdmin(user)) return // 관리자 본인 활동은 통계에서 제외
+    logVisit({ studentId: user.studentId, path: location.pathname })
+  }, [user, location.pathname])
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-bg-soft)' }}>
