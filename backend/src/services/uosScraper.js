@@ -479,30 +479,94 @@ export async function loginAndFetchTimetable(userId, password) {
 
     // === 7. WISE 메인 페이지 로딩 대기 ===
     await page
-      .waitForSelector('a, .cl-sidenavigation-item', { timeout: 10000 })
+      .waitForSelector('a, .cl-sidenavigation-item, [class*="menu"]', { timeout: 15000 })
       .catch(() => {})
-    await new Promise((r) => setTimeout(r, 800)) // 메뉴 트리 로딩 대기 (단축)
+    await page.waitForNetworkIdle({ idleTime: 1000, timeout: 12000 }).catch(() => {})
 
-    // === 8. "수강신청확인서" 메뉴 클릭 ===
-    const menuClicked = await page.evaluate(() => {
-      const normalize = (value) => String(value || '').replace(/\s+/g, '')
-      const candidates = Array.from(
-        document.querySelectorAll('a, button, span, div, li, [role="button"], [role="treeitem"]'),
-      )
-      const item = candidates.find((el) => normalize(el.innerText || el.textContent) === '수강신청확인서')
-      if (!item) return false
+    // === 8. "수강신청확인서" 메뉴 찾기 + 클릭 ===
+    // WISE는 eXBuilder 기반이라 메뉴가 늦게 로드되거나 iframe/shadow DOM에 있을 수 있음.
+    // 최대 20초 동안 폴링 + 모든 frame 검색 + 부분 텍스트 매칭까지 시도.
+    const targetText = '수강신청확인서'
 
-      const clickable =
-        item.closest('a, button, [role="button"], [role="treeitem"], [onclick], li') || item
-      clickable.click()
-      return true
-    })
+    async function findAndClickMenu() {
+      // 1) 모든 frame을 순회하며 텍스트 매칭 시도
+      for (const frame of page.frames()) {
+        try {
+          const clicked = await frame.evaluate((target) => {
+            const normalize = (v) => String(v || '').replace(/\s+/g, '')
+            const candidates = Array.from(
+              document.querySelectorAll(
+                'a, button, span, div, li, td, [role="button"], [role="treeitem"], [role="menuitem"]',
+              ),
+            )
+            // 정확 매칭 우선
+            let item = candidates.find(
+              (el) => normalize(el.innerText || el.textContent) === target,
+            )
+            // 부분 매칭 (다른 텍스트와 함께 있을 가능성 — 예: "수강신청확인서 ›")
+            if (!item) {
+              item = candidates.find((el) => {
+                const t = normalize(el.innerText || el.textContent)
+                return t.includes(target) && t.length < target.length + 20
+              })
+            }
+            if (!item) return false
+            const clickable =
+              item.closest(
+                'a, button, [role="button"], [role="treeitem"], [role="menuitem"], [onclick], li, tr',
+              ) || item
+            clickable.scrollIntoView({ block: 'center' })
+            clickable.click()
+            return true
+          }, targetText)
+          if (clicked) return true
+        } catch {
+          // frame 접근 권한 없으면 패스
+        }
+      }
+      return false
+    }
+
+    // 폴링 — 메뉴 트리가 늦게 로드될 수 있음
+    let menuClicked = false
+    const menuStart = Date.now()
+    while (!menuClicked && Date.now() - menuStart < 20000) {
+      menuClicked = await findAndClickMenu()
+      if (menuClicked) break
+      await new Promise((r) => setTimeout(r, 800))
+    }
 
     if (!menuClicked) {
+      // 디버그용: 사이드바/메뉴 트리에 어떤 텍스트들이 있는지 수집
+      const menuDebug = await page.evaluate(() => {
+        const grab = (root) =>
+          Array.from(
+            root.querySelectorAll(
+              'a, [role="treeitem"], [role="menuitem"], .cl-sidenavigation-item, [class*="menu"], [class*="Menu"]',
+            ),
+          )
+            .map((el) => (el.innerText || el.textContent || '').trim())
+            .filter((t) => t && t.length < 50)
+            .slice(0, 60)
+        const main = grab(document)
+        const frames = []
+        Array.from(document.querySelectorAll('iframe, frame')).forEach((f) => {
+          frames.push({ src: f.src || null, id: f.id || null })
+        })
+        return {
+          url: location.href,
+          title: document.title,
+          menuTexts: main,
+          frameCount: frames.length,
+          frames,
+        }
+      }).catch(() => ({}))
+
       return {
         success: false,
         error:
-          '수강신청확인서 메뉴를 찾지 못했어요. 시립대 시스템 변경 가능성 있음.',
+          '수강신청확인서 메뉴를 찾지 못했어요. 메뉴 트리가 다 로드되지 않았거나 iframe 안에 있을 수 있어요.',
+        debug: { stage: 'findMenu', ...menuDebug },
       }
     }
 
