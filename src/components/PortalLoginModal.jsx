@@ -15,6 +15,20 @@ function formatPortalError(result) {
   const debug = result?.debug
   if (!debug) return base
 
+  // 시간표 응답 못 받은 단계 — 캡처된 URL들 보여주기
+  if (debug.stage === 'noTimetableResponse') {
+    const urls = Array.isArray(debug.capturedUrls) ? debug.capturedUrls : []
+    const urlList = urls.length
+      ? urls.slice(0, 15).map((u) => u.replace(/^https?:\/\/[^/]+/, '')).join('\n')
+      : '(아무 응답도 캡처 안 됨)'
+    const sampleKeys = (debug.responsesSummary || [])
+      .filter((r) => r.rowKeys && r.rowKeys.length)
+      .slice(0, 3)
+      .map((r) => `${r.url.split('/').slice(-2).join('/')}: rowKeys=[${r.rowKeys.join(',')}]`)
+      .join('\n')
+    return `${base}\n\n현재 URL: ${debug.currentUrl || '?'}\n캡처된 JSON 응답 ${debug.totalCapturedDoJson || 0}개\n위젯 자동 캡처 성공: ${debug.earlyTimetableFound ? 'Y' : 'N'}\n\nURL 목록:\n${urlList}\n\n행 데이터 있는 응답:\n${sampleKeys || '(없음)'}`
+  }
+
   // 메뉴 탐색 단계 실패 → 사이드바 메뉴 텍스트들 같이 보여주기 (디버그용)
   if (debug.stage === 'findMenu' && Array.isArray(debug.menuTexts)) {
     const related = Array.isArray(debug.courseRelated) ? debug.courseRelated : []

@@ -707,9 +707,37 @@ export async function loginAndFetchTimetable(userId, password) {
     }
 
     if (capturedResponses.length === 0) {
+      // 디버그: 모든 캡처된 URL + 첫 응답 샘플 + 메뉴 클릭 결과
+      const capturedUrls = allCaptured.map((c) => c.url)
+      // 응답들에서 키 패턴 추출 (어떤 데이터가 들어있는지)
+      const responsesSummary = allCaptured.slice(0, 20).map((c) => {
+        let keys = []
+        let sampleRowKeys = []
+        try {
+          const parsed = JSON.parse(c.body)
+          keys = Object.keys(parsed || {})
+          const rows = extractRows(parsed)
+          if (rows.length > 0 && rows[0] && typeof rows[0] === 'object') {
+            sampleRowKeys = Object.keys(rows[0])
+          }
+        } catch {
+          // 무시
+        }
+        return { url: c.url, topKeys: keys.slice(0, 12), rowKeys: sampleRowKeys.slice(0, 12), size: c.body.length }
+      })
+      const currentUrl = await page.url().catch(() => 'unknown')
       return {
         success: false,
-        error: '시간표 데이터 응답을 받지 못했어요. 다시 시도해주세요.',
+        error:
+          '시간표 데이터 응답을 받지 못했어요. (디버그 정보는 응답에 첨부됨)',
+        debug: {
+          stage: 'noTimetableResponse',
+          currentUrl,
+          earlyTimetableFound: !!earlyTimetable,
+          totalCapturedDoJson: allCaptured.length,
+          capturedUrls,
+          responsesSummary,
+        },
       }
     }
 
