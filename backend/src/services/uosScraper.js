@@ -444,7 +444,12 @@ export async function loginAndFetchTimetable(userId, password) {
         `${pageState.bodySnippet || ''} ${(pageState.alerts || []).join(' ')} ${dialogs
           .map((d) => d.message)
           .join(' ')}`.trim()
-      if (
+      const dialogText = dialogs.map((d) => d.message).filter(Boolean).join(' / ')
+      if (dialogText.includes('No user corresponds')) {
+        errorMsg = `포털이 해당 아이디를 찾지 못했다고 응답했어요: ${dialogText}`
+      } else if (dialogText) {
+        errorMsg = `포털 로그인 응답: ${dialogText}`
+      } else if (
         allText.includes('일치하지 않') ||
         (allText.includes('확인') && allText.includes('아이디') && allText.includes('비밀번호'))
       ) {

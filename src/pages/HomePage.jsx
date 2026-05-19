@@ -591,6 +591,13 @@ export default function HomePage() {
 
       {/* 본문 */}
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 16px 36px' }}>
+        {/* 비로그인 사용자: 포털 CTA 카드를 본문 최상단으로 (모바일 우선 노출) */}
+        {!user && (
+          <div style={{ marginBottom: 20 }}>
+            <LoginPromptCard onLogin={() => setLoginModalOpen(true)} />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* 메인 컬럼 */}
           <div className="flex flex-col gap-5 min-w-0">
@@ -606,11 +613,7 @@ export default function HomePage() {
 
           {/* 사이드 */}
           <aside className="flex flex-col gap-4 min-w-0">
-            {user ? (
-              <MyInfoCard user={user} />
-            ) : (
-              <LoginPromptCard onLogin={() => setLoginModalOpen(true)} />
-            )}
+            {user && <MyInfoCard user={user} />}
             <NoticeSideCard />
           </aside>
         </div>
