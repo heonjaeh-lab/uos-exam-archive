@@ -210,13 +210,23 @@ export async function loginAndFetchTimetable(userId, password) {
     await page.setUserAgent(USER_AGENT)
     await page.setViewport({ width: 1400, height: 900 })
 
-    // === 0. 리소스 차단 (이미지/폰트/CSS/광고) — 페이지 로드 3-5배 빨라짐 ===
+    const dialogs = []
+    const urlHistory = []
+    page.on('framenavigated', (frame) => {
+      if (frame === page.mainFrame()) urlHistory.push(frame.url())
+    })
+    page.on('dialog', async (dialog) => {
+      dialogs.push({ type: dialog.type(), message: dialog.message() })
+      await dialog.dismiss().catch(() => {})
+    })
+
+    // === 0. 리소스 차단 (이미지/폰트/광고) — 페이지 로드 단축 ===
     await page.setRequestInterception(true)
     page.on('request', (req) => {
       const type = req.resourceType()
       const url = req.url()
-      // 핵심 리소스만 통과
-      if (type === 'image' || type === 'stylesheet' || type === 'font' || type === 'media') {
+      // 로그인 페이지는 CSS display 상태가 탭/폼 동작에 영향을 줘서 stylesheet는 통과시킨다.
+      if (type === 'image' || type === 'font' || type === 'media') {
         req.abort()
       } else if (
         url.includes('googletagmanager') ||
@@ -290,32 +300,24 @@ export async function loginAndFetchTimetable(userId, password) {
     await page.waitForSelector('#user_password', { timeout: 15000 })
 
     // === 2.5. Basic login 탭 활성화 ===
-    // SSO 페이지는 두 탭으로 나뉨: Basic login(일반) / Certification login(인증서)
-    // 첫 진입 시 인증서 탭이 활성화돼있을 수 있어서 일반 로그인 탭을 명시적으로 활성화.
-    await page
-      .evaluate(() => {
-        // "Basic login" 또는 "일반" 텍스트 가진 탭/링크 찾기
-        const tabs = Array.from(
-          document.querySelectorAll('a, button, li, [role="tab"], .tab, [class*="tab"]'),
-        )
-        const basicTab = tabs.find((el) => {
-          const t = (el.innerText || el.textContent || '').trim()
-          return /^Basic\s*login$|^일반\s*로그인$|^Basic$|^일반$/i.test(t)
-        })
-        if (basicTab) {
-          basicTab.click()
-          return true
-        }
-        return false
-      })
-      .catch(() => false)
+    // SSO 페이지는 일반 로그인/인증 로그인 탭으로 나뉜다. 일반 로그인 폼을 기준으로 조작한다.
+    await page.evaluate(() => {
+      const basicBox = document.querySelector('#content01')
+      if (basicBox) basicBox.style.display = 'block'
+      const certBox = document.querySelector('#content02')
+      if (certBox) certBox.style.display = 'none'
+    }).catch(() => {})
 
-    // 탭 전환 후 필드가 보이도록 잠깐 대기
-    await new Promise((r) => setTimeout(r, 500))
+    await page.waitForSelector('form[name="loginFrm"] #user_id', { visible: true, timeout: 15000 })
+    await page.waitForSelector('form[name="loginFrm"] #user_password', { visible: true, timeout: 15000 })
 
     // === 3. 학번/비밀번호 입력 (ML4WebVKey가 자동 암호화) ===
-    await page.type('#user_id', userId, { delay: 15 })
-    await page.type('#user_password', password, { delay: 15 })
+    await page.click('form[name="loginFrm"] #user_id', { clickCount: 3 })
+    await page.keyboard.press('Backspace')
+    await page.type('form[name="loginFrm"] #user_id', userId, { delay: 15 })
+    await page.click('form[name="loginFrm"] #user_password', { clickCount: 3 })
+    await page.keyboard.press('Backspace')
+    await page.type('form[name="loginFrm"] #user_password', password, { delay: 15 })
 
     // === 4. 로그인 버튼 찾기 + 클릭 ===
     // 핵심: 시립대 포털은 ML4WebVKey JS가 form submit 이벤트에 훅해서
@@ -324,8 +326,12 @@ export async function loginAndFetchTimetable(userId, password) {
     //
     // 해결: Puppeteer native click (실제 마우스 이벤트)을 사용해서 모든 핸들러 트리거.
 
-    // (1) 가장 자연스러운 셀렉터들을 먼저 시도
+    // (1) 일반 로그인 폼 내부의 실제 submit 버튼을 우선 시도.
+    // "Basic login" 탭 버튼도 onclick/login 텍스트를 가질 수 있어 범위를 form으로 제한한다.
     const knownSelectors = [
+      'form[name="loginFrm"] .login_btn button[onclick*="doLogin"]',
+      'form[name="loginFrm"] button[title="로그인"]',
+      'form[name="loginFrm"] button[onclick*="doLogin"]',
       'button[onclick*="login" i]',
       'input[type="submit"]',
       '#loginBtn',
@@ -349,11 +355,13 @@ export async function loginAndFetchTimetable(userId, password) {
     if (!loginSelector) {
       const xpath = await page.evaluateHandle(() => {
         const all = Array.from(
-          document.querySelectorAll('button, a, input[type="button"], input[type="submit"], [role="button"]'),
+          document.querySelectorAll(
+            'form[name="loginFrm"] button, form[name="loginFrm"] a, form[name="loginFrm"] input[type="button"], form[name="loginFrm"] input[type="submit"], form[name="loginFrm"] [role="button"]',
+          ),
         )
         const match = all.find((el) => {
           const t = (el.innerText || el.value || '').trim()
-          return /로그인|LOGIN|Login|^Log\s*in$/.test(t)
+          return /^(로그인|LOGIN|Login|Log\s*in)$/.test(t)
         })
         if (match) {
           // 임시 id 부여
@@ -371,7 +379,10 @@ export async function loginAndFetchTimetable(userId, password) {
       try {
         // Puppeteer native click → 실제 mousedown/mouseup/click 이벤트 발생
         // → ML4WebVKey 같은 이벤트 핸들러가 정상 동작
-        await page.click(loginSelector)
+        await Promise.allSettled([
+          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+          page.click(loginSelector),
+        ])
         loginClicked = true
       } catch {
         loginClicked = false
@@ -381,19 +392,30 @@ export async function loginAndFetchTimetable(userId, password) {
     // (3) 그래도 안 되면 Enter 키 (form submit 트리거 — 핸들러도 같이 작동)
     if (!loginClicked) {
       await page.focus('#user_password')
-      await page.keyboard.press('Enter')
+      await Promise.allSettled([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+        page.keyboard.press('Enter'),
+      ])
     }
 
-    // === 5. 로그인 결과 대기 (WISE 메인까지 이동) ===
-    await page
-      .waitForFunction(() => location.href.includes('wise.uos.ac.kr/index.do'), {
-        timeout: 20000,
-      })
-      .catch(() => {})
+    await page.waitForNetworkIdle({ idleTime: 800, timeout: 10000 }).catch(() => {})
+
+    // === 5. 로그인 결과 대기 + WISE 진입 시도 ===
+    // SSO 성공 후 portal 메인에 머무를 수도 있으므로, 인증 세션을 들고 WISE로 명시 진입한다.
+    const postLoginUrl = page.url()
+    if (!postLoginUrl.includes('wise.uos.ac.kr')) {
+      await page.goto(WISE_INDEX_URL, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000,
+      }).catch(() => {})
+      await page.waitForNetworkIdle({ idleTime: 800, timeout: 10000 }).catch(() => {})
+    }
 
     // === 6. 로그인 실패 감지 ===
     const finalUrl = page.url()
     if (!finalUrl.includes('wise.uos.ac.kr')) {
+      await page.waitForSelector('body', { timeout: 5000 }).catch(() => {})
+
       // 페이지 상태를 자세히 수집해서 디버그용으로 같이 반환
       const pageState = await page
         .evaluate(() => {
@@ -409,7 +431,7 @@ export async function loginAndFetchTimetable(userId, password) {
           return {
             url: location.href,
             title: document.title,
-            bodySnippet: text.slice(0, 500),
+            bodySnippet: text.slice(0, 800),
             alerts: alerts.slice(0, 5),
             hasUserIdField: !!document.querySelector('#user_id'),
             hasPasswordField: !!document.querySelector('#user_password'),
@@ -419,10 +441,20 @@ export async function loginAndFetchTimetable(userId, password) {
 
       // 알려진 에러 패턴 분류
       let errorMsg = null
-      const allText = (pageState.bodySnippet + ' ' + (pageState.alerts || []).join(' ')) || ''
-      if (allText.includes('일치하지 않')) errorMsg = '아이디 또는 비밀번호가 일치하지 않습니다.'
+      const allText =
+        `${pageState.bodySnippet || ''} ${(pageState.alerts || []).join(' ')} ${dialogs
+          .map((d) => d.message)
+          .join(' ')}`.trim()
+      if (
+        allText.includes('일치하지 않') ||
+        (allText.includes('확인') && allText.includes('아이디') && allText.includes('비밀번호'))
+      ) {
+        errorMsg = '포털이 아이디/비밀번호를 거부했어요. 직접 포털 웹 로그인 가능 여부를 한 번 확인해주세요.'
+      }
       else if (allText.includes('잠금') || allText.includes('5회'))
         errorMsg = '계정이 잠겼을 수 있습니다. 포털에서 직접 확인해주세요.'
+      else if (finalUrl.includes('Access') || allText.includes('차단'))
+        errorMsg = '시립대 포털이 현재 서버 접속을 차단했어요. 백엔드 실행 위치/IP를 바꿔야 합니다.'
       else if (pageState.hasUserIdField) errorMsg = '로그인 폼에서 멈췄어요 — 버튼 클릭이 동작하지 않거나 인증이 거부됐을 가능성.'
 
       return {
@@ -432,7 +464,10 @@ export async function loginAndFetchTimetable(userId, password) {
         debug: {
           loginSelector,
           loginClicked,
+          postLoginUrl,
           finalUrl,
+          dialogs,
+          urlHistory: urlHistory.slice(-10),
           pageState,
         },
       }

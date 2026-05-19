@@ -1,16 +1,32 @@
 /**
  * JWT 토큰 발급/검증
  *
- * 시립대 포털 로그인 1회 성공 후 30일 유효 토큰 발급.
- * 이후 30일 동안은 시립대 호출 없이 사이트 사용 가능.
+ * 시립대 포털 로그인 1회 성공 후 7일 유효 토큰 발급.
+ * 이후 7일 동안은 시립대 호출 없이 사이트 사용 가능.
  *
- * 환경변수: JWT_SECRET (Render에서 자동 생성)
+ * 환경변수: JWT_SECRET (Render에서 자동 생성, 필수)
  */
 
 import jwt from 'jsonwebtoken'
+import crypto from 'crypto'
 
-const SECRET = process.env.JWT_SECRET || 'dev-only-secret-DO-NOT-USE-IN-PROD-9f3a2b1c'
-const EXPIRES_IN = '30d'
+// 프로덕션에서 JWT_SECRET 누락 시 즉시 부팅 거부 — 예측 가능한 fallback으로
+// 토큰을 위조하는 표면을 제거.
+let SECRET = process.env.JWT_SECRET
+if (!SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'JWT_SECRET 환경변수가 설정되지 않았습니다. ' +
+        '프로덕션에서는 안전한 랜덤 비밀키를 반드시 설정해야 합니다.',
+    )
+  }
+  // 개발 환경: 매 부팅마다 랜덤 secret 생성 (예측 불가, 재시작 시 토큰 무효화)
+  SECRET = crypto.randomBytes(48).toString('base64')
+  console.warn('[jwt] 개발 모드: 임시 JWT secret 생성됨 (서버 재시작 시 토큰 무효화)')
+}
+
+// 토큰 유효기간: 30일 → 7일로 단축 (탈취 시 영향 범위 축소)
+const EXPIRES_IN = '7d'
 
 /**
  * 토큰 발급

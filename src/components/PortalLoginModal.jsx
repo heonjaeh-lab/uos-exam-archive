@@ -10,6 +10,25 @@ const Icon = {
   x: (p) => <SVG {...p}><path d="M6 6l12 12M18 6L6 18"/></SVG>,
 }
 
+function formatPortalError(result) {
+  const base = result?.error || '로그인 실패'
+  const debug = result?.debug
+  if (!debug) return base
+
+  const dialogMessage = debug.dialogs?.map((d) => d.message).filter(Boolean).join('\n')
+  if (dialogMessage) return `${base}\n\n포털 응답: ${dialogMessage}`
+
+  if (debug.finalUrl?.includes('sso.uos.ac.kr/Login.eps')) {
+    return `${base}\n\nSSO 로그인 화면에서 다시 멈췄어요. 포털 직접 로그인은 되는데 여기서만 실패하면 자동화가 비밀번호 전송 또는 로그인 버튼 흐름을 제대로 처리하지 못한 상태입니다.`
+  }
+
+  if (debug.finalUrl) {
+    return `${base}\n\n멈춘 위치: ${debug.finalUrl}`
+  }
+
+  return base
+}
+
 /**
  * 시립대 포털 로그인 모달 (Claude Design 시안 적용)
  *
@@ -53,7 +72,7 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
         setPassword('')
         onClose?.()
       } else {
-        setError(result.error || '로그인 실패')
+        setError(formatPortalError(result))
       }
     } finally {
       setLoading(false)

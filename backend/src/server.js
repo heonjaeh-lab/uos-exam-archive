@@ -27,12 +27,34 @@ const ALLOWED_ORIGINS = (
   'http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174,https://heonjaeh-lab.github.io,https://haheonjae.github.io'
 ).split(',').map((s) => s.trim())
 
-// 미들웨어
-app.use(helmet())
+// 미들웨어 — Helmet 보안 헤더 강화
+app.use(
+  helmet({
+    // API 전용이라 CSP는 보수적으로 — 외부 리소스 일체 불러오지 않음
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"], // clickjacking 방지
+      },
+    },
+    // HSTS: 1년, includeSubDomains
+    strictTransportSecurity: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    referrerPolicy: { policy: 'no-referrer' },
+    // X-Frame-Options DENY (위 frameAncestors와 함께)
+    frameguard: { action: 'deny' },
+    // 일부 사이드채널 차단
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-site' },
+  }),
+)
 app.use(
   cors({
     origin: (origin, callback) => {
-      // origin 없으면 (curl/postman) 허용
+      // origin 없으면 (curl/postman/server-to-server) 허용
       if (!origin) return callback(null, true)
       if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true)
       callback(new Error(`CORS 차단: ${origin}`))
@@ -40,7 +62,8 @@ app.use(
     credentials: true,
   }),
 )
-app.use(express.json({ limit: '10kb' })) // 작은 페이로드만 허용
+// 페이로드 크기 제한: 비밀번호 + 학번 + 약간 ≤ 1KB로 충분, 여유 두고 10KB
+app.use(express.json({ limit: '10kb' }))
 
 // 헬스체크 (Render가 깨우는 용도)
 app.get('/', (req, res) => {
