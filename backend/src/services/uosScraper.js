@@ -311,17 +311,14 @@ export async function loginAndFetchTimetable(userId, password) {
     // 외부 리소스가 networkidle을 늦춰서 form fields가 늦게 렌더됨.
     // 진단 결과: 필드 자체는 존재하나 15초 안에 못 찾음 → 타임아웃 확대.
     await page.goto(PORTAL_LOGIN_URL, {
-      waitUntil: 'domcontentloaded', // SSO 리다이렉트 후 main frame DOM만 기다림
-      timeout: 30000,
+      waitUntil: 'domcontentloaded',
+      timeout: 20000, // 30s → 20s
     })
 
-    // 학번/비밀번호 입력 필드 대기 — DOM에 존재만 확인 (visible 체크 X)
-    // 진단 결과: #user_id, #user_password는 DOM엔 항상 있지만 첫 진입 시
-    // "Certification login" 탭이 활성화돼서 Basic login의 필드들이 display:none됨.
-    // 따라서 visible:true로 기다리면 영원히 못 찾음 → 먼저 Basic login 탭 활성화.
+    // 학번/비밀번호 입력 필드 대기 — 보통 1-3초 안에 나타남
     try {
-      await page.waitForSelector('#user_id', { timeout: 30000 })
-      await page.waitForSelector('#user_password', { timeout: 15000 })
+      await page.waitForSelector('#user_id', { timeout: 15000 }) // 30s → 15s
+      await page.waitForSelector('#user_password', { timeout: 5000 }) // 15s → 5s
     } catch {
       const diag = await collectPageState(page)
       return {
@@ -340,8 +337,8 @@ export async function loginAndFetchTimetable(userId, password) {
       if (certBox) certBox.style.display = 'none'
     }).catch(() => {})
 
-    await page.waitForSelector('form[name="loginFrm"] #user_id', { visible: true, timeout: 15000 })
-    await page.waitForSelector('form[name="loginFrm"] #user_password', { visible: true, timeout: 15000 })
+    await page.waitForSelector('form[name="loginFrm"] #user_id', { visible: true, timeout: 5000 })
+    await page.waitForSelector('form[name="loginFrm"] #user_password', { visible: true, timeout: 3000 })
 
     // === 3. 학번/비밀번호 입력 (ML4WebVKey가 자동 암호화) ===
     await page.click('form[name="loginFrm"] #user_id', { clickCount: 3 })
@@ -409,10 +406,8 @@ export async function loginAndFetchTimetable(userId, password) {
     let loginClicked = false
     if (loginSelector) {
       try {
-        // Puppeteer native click → 실제 mousedown/mouseup/click 이벤트 발생
-        // → ML4WebVKey 같은 이벤트 핸들러가 정상 동작
         await Promise.allSettled([
-          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+          page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }), // 30s → 15s
           page.click(loginSelector),
         ])
         loginClicked = true
@@ -421,26 +416,24 @@ export async function loginAndFetchTimetable(userId, password) {
       }
     }
 
-    // (3) 그래도 안 되면 Enter 키 (form submit 트리거 — 핸들러도 같이 작동)
     if (!loginClicked) {
       await page.focus('#user_password')
       await Promise.allSettled([
-        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }),
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }),
         page.keyboard.press('Enter'),
       ])
     }
 
-    await page.waitForNetworkIdle({ idleTime: 800, timeout: 10000 }).catch(() => {})
+    await page.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => {}) // 10s → 5s
 
     // === 5. 로그인 결과 대기 + WISE 진입 시도 ===
-    // SSO 성공 후 portal 메인에 머무를 수도 있으므로, 인증 세션을 들고 WISE로 명시 진입한다.
     const postLoginUrl = page.url()
     if (!postLoginUrl.includes('wise.uos.ac.kr')) {
       await page.goto(WISE_INDEX_URL, {
         waitUntil: 'domcontentloaded',
-        timeout: 30000,
+        timeout: 15000, // 30s → 15s
       }).catch(() => {})
-      await page.waitForNetworkIdle({ idleTime: 800, timeout: 10000 }).catch(() => {})
+      await page.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => {})
     }
 
     // === 6. 로그인 실패 감지 ===
@@ -491,12 +484,10 @@ export async function loginAndFetchTimetable(userId, password) {
     }
 
     // === 7. WISE 메인 페이지 로딩 대기 + 위젯 데이터 자동 수집 ===
-    // WISE index.do는 진입 직후 사용자 시간표 위젯을 자동 로드함.
-    // 메뉴를 클릭하지 않고도 위젯이 호출한 API에 시간표 JSON이 들어옴.
     await page
-      .waitForSelector('a, .cl-sidenavigation-item, [class*="menu"]', { timeout: 15000 })
+      .waitForSelector('a, .cl-sidenavigation-item, [class*="menu"]', { timeout: 8000 }) // 15s → 8s
       .catch(() => {})
-    await page.waitForNetworkIdle({ idleTime: 1500, timeout: 15000 }).catch(() => {})
+    await page.waitForNetworkIdle({ idleTime: 800, timeout: 6000 }).catch(() => {}) // 15s → 6s
 
     // === 7.5. 캡처된 응답에서 강의 데이터 찾기 ===
     // 사이드바 메뉴 클릭 없이도 위젯이 시간표 API를 호출했을 가능성.
@@ -534,31 +525,32 @@ export async function loginAndFetchTimetable(userId, password) {
       // capturedResponses에 이미 들어가있어서 === 10. JSON 파싱 단계로 fall through.
     }
 
-    // === 7.5. WISE 한국어 전환 시도 ===
-    // 진단 결과 사용자 계정이 영문 모드 → 한국어로 전환하면 한글 메뉴 텍스트로 매칭 가능.
-    // "KOR" / "한국어" 텍스트 가진 링크 클릭. 페이지 새로고침될 수 있어 대기.
-    const switchedToKorean = await page
-      .evaluate(() => {
-        const all = Array.from(
-          document.querySelectorAll('a, button, span, li, [role="button"]'),
-        )
-        const koLink = all.find((el) => {
-          const t = (el.innerText || el.textContent || '').trim()
-          return /^(한국어|한글|KOR|KO|Korean|국문)$/i.test(t)
+    // === 7.5. WISE 한국어 전환 시도 (earlyTimetable 없을 때만) ===
+    let switchedToKorean = false
+    if (!earlyTimetable) {
+      switchedToKorean = await page
+        .evaluate(() => {
+          const all = Array.from(
+            document.querySelectorAll('a, button, span, li, [role="button"]'),
+          )
+          const koLink = all.find((el) => {
+            const t = (el.innerText || el.textContent || '').trim()
+            return /^(한국어|한글|KOR|KO|Korean|국문)$/i.test(t)
+          })
+          if (koLink) {
+            koLink.click()
+            return true
+          }
+          return false
         })
-        if (koLink) {
-          koLink.click()
-          return true
-        }
-        return false
-      })
-      .catch(() => false)
+        .catch(() => false)
 
-    if (switchedToKorean) {
-      await page
-        .waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 })
-        .catch(() => {})
-      await page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {})
+      if (switchedToKorean) {
+        await page
+          .waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 }) // 10s → 5s
+          .catch(() => {})
+        await page.waitForNetworkIdle({ idleTime: 500, timeout: 4000 }).catch(() => {}) // 10s → 4s
+      }
     }
 
     // === 8. "수강신청확인서" 메뉴 찾기 + 클릭 (위젯에서 못 얻은 경우만) ===
@@ -639,13 +631,13 @@ export async function loginAndFetchTimetable(userId, password) {
       return false
     }
 
-    // 폴링 — 메뉴 트리가 늦게 로드될 수 있음
+    // 폴링 — 메뉴 트리가 늦게 로드될 수 있음 (20s → 8s; DOM 스크랩 폴백이 있음)
     let menuClicked = false
     const menuStart = Date.now()
-    while (!menuClicked && Date.now() - menuStart < 20000) {
+    while (!menuClicked && Date.now() - menuStart < 8000) {
       menuClicked = await findAndClickMenu()
       if (menuClicked) break
-      await new Promise((r) => setTimeout(r, 800))
+      await new Promise((r) => setTimeout(r, 500))
     }
 
     if (!menuClicked) {
@@ -688,11 +680,10 @@ export async function loginAndFetchTimetable(userId, password) {
     }
     } // end if (!earlyTimetable) — 메뉴 클릭 스킵 블록 종료
 
-    // === 9. list.do 응답 도착 대기 (최대 15초) ===
-    // earlyTimetable이 이미 있으면 capturedResponses에 들어있어서 즉시 통과
+    // === 9. list.do 응답 도착 대기 (최대 6초 — DOM 스크랩 폴백 있음) ===
     const start = Date.now()
-    while (capturedResponses.length === 0 && Date.now() - start < 15000) {
-      await new Promise((r) => setTimeout(r, 500))
+    while (capturedResponses.length === 0 && Date.now() - start < 6000) { // 15s → 6s
+      await new Promise((r) => setTimeout(r, 300))
     }
 
     // list.do가 안 왔어도 allCaptured에서 강의 데이터 응답을 찾아본다

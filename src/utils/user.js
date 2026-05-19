@@ -2,9 +2,9 @@
  * 사용자 상태 관리
  *
  * 시립대 포털 로그인 = 사용자 인증
- *   - 학번 + 30일 유효 JWT 토큰
+ *   - 학번 + 1년 유효 JWT 토큰
  *   - localStorage에 저장
- *   - 토큰 만료 전까지는 시립대 호출 없이 자동 로그인
+ *   - 사이트 방문 시 자동으로 토큰 갱신 (영구 로그인 유지)
  */
 
 import { useState, useEffect } from 'react'
@@ -95,6 +95,34 @@ export function getAuthToken() {
 }
 
 /**
+ * 백엔드에 토큰 갱신 요청 — 사이트 방문 시 자동으로 만료일 늘려서 영구 로그인 유지
+ */
+async function refreshToken() {
+  const current = getStoredUser()
+  if (!current?.token) return
+  const backendUrl = import.meta.env.VITE_BACKEND_URL
+  if (!backendUrl) return
+  try {
+    const res = await fetch(`${backendUrl}/api/refresh`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${current.token}` },
+    })
+    if (!res.ok) return
+    const data = await res.json()
+    if (data?.success && data?.token) {
+      // 갱신된 토큰으로 저장 (studentId/name 유지)
+      saveUser({
+        studentId: current.studentId,
+        token: data.token,
+        name: current.name,
+      })
+    }
+  } catch {
+    // 네트워크 오류 등 무시 — 다음 방문 때 다시 시도
+  }
+}
+
+/**
  * React hook
  */
 export function useUser() {
@@ -104,11 +132,21 @@ export function useUser() {
     const handler = (e) => setUser(e.detail)
     window.addEventListener('uos-user-changed', handler)
 
-    // 1시간마다 토큰 만료 체크 (만료 시 자동 로그아웃)
+    // 사이트 방문 시 토큰 자동 갱신 (영구 로그인 유지)
+    // 백엔드가 새 1년짜리 토큰 발급 → 매번 방문할 때마다 갱신
+    if (user) {
+      refreshToken()
+    }
+
+    // 6시간마다 다시 갱신 (사용자가 사이트를 오래 열어둔 경우 대비)
     const interval = setInterval(() => {
       const current = getStoredUser()
-      if (!current && user) setUser(null)
-    }, 60 * 60 * 1000)
+      if (!current && user) {
+        setUser(null)
+      } else if (current) {
+        refreshToken()
+      }
+    }, 6 * 60 * 60 * 1000)
 
     return () => {
       window.removeEventListener('uos-user-changed', handler)
