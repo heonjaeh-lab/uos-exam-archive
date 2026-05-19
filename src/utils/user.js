@@ -14,15 +14,12 @@ const STORAGE_KEY = 'uos-user'
 /**
  * 사용자 식별자 형식 검증
  *
- * 포털 아이디는 학번(숫자)일 수도 있고, 이메일(또는 일반 문자열)일 수도 있음.
- *   - 학번: 6~10자리 숫자
- *   - 이메일/일반: 3자 이상이고 공백 없는 문자열
+ * 시립대 포털은 ID 형식 자체엔 제한이 없음 (학번/영문/이메일 모두 허용).
+ * 우리 쪽 검증은 "빈 값 아닌지"만 확인하고 나머지는 포털이 판단하도록 위임.
  */
 function isValidStudentId(id) {
   const s = String(id || '').trim()
-  if (!s) return false
-  if (/\s/.test(s)) return false
-  return s.length >= 3 && s.length <= 100
+  return s.length > 0
 }
 
 /**

@@ -30,26 +30,23 @@ router.post('/login-and-fetch', loginLimiter, async (req, res) => {
     })
   }
 
-  // 아이디 형식 검증 (학번 = 숫자 / 이메일 = 일반 문자열, 공백 금지)
+  // 아이디 형식 검증은 시립대 포털 본인에게 위임 (양식 제한 없음).
+  // 우리는 빈 값/과도한 길이만 거르고 그대로 전달.
   const trimmedId = String(userId).trim()
-  if (
-    trimmedId.length < 3 ||
-    trimmedId.length > 100 ||
-    /\s/.test(trimmedId)
-  ) {
+  if (!trimmedId || trimmedId.length > 200) {
     return res.status(400).json({
       success: false,
-      error: '아이디 형식이 올바르지 않습니다.',
+      error: '아이디를 입력해주세요.',
     })
   }
 
   // 비밀번호는 메모리에서만 사용, 로그 절대 X
   const result = await loginAndFetchTimetable(trimmedId, password)
 
-  // 로그인 성공 시 JWT 토큰 발급 (30일 유효)
+  // 로그인 성공 시 JWT 토큰 발급
   if (result.success) {
     result.token = signToken({ studentId: trimmedId })
-    result.expiresInDays = 30
+    result.expiresInDays = 7
   }
 
   // 응답 상태 코드 결정
