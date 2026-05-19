@@ -15,6 +15,17 @@ function formatPortalError(result) {
   const debug = result?.debug
   if (!debug) return base
 
+  // 메뉴 탐색 단계 실패 → 사이드바 메뉴 텍스트들 같이 보여주기 (디버그용)
+  if (debug.stage === 'findMenu' && Array.isArray(debug.menuTexts)) {
+    const menuList = debug.menuTexts.length
+      ? debug.menuTexts.slice(0, 30).join(' | ')
+      : '(메뉴 텍스트 못 찾음)'
+    const frameInfo = debug.frameCount
+      ? `iframe ${debug.frameCount}개 발견`
+      : 'iframe 없음'
+    return `${base}\n\n현재 URL: ${debug.url || '?'}\n${frameInfo}\n사이드바 메뉴: ${menuList}`
+  }
+
   const dialogMessage = debug.dialogs?.map((d) => d.message).filter(Boolean).join('\n')
   if (dialogMessage) return `${base}\n\n포털 응답: ${dialogMessage}`
 
