@@ -7,12 +7,13 @@ import PortalLoginModal from '../components/PortalLoginModal'
 import { useUser, clearUser } from '../utils/user'
 import { loadTimetables, saveTimetables } from '../api/timetableStore'
 import { matchPortalCourses } from '../utils/portalCourseMatch'
+import { koreaNow } from '../utils/koreaTime'
 
 const STORAGE_KEY = 'uos-timetable-v1'
 
-// 기본값: 현재 연도 / 현재 정규학기
-const DEFAULT_YEAR = new Date().getFullYear()
-const DEFAULT_TERM = new Date().getMonth() + 1 >= 9 ? TERM.FALL : TERM.SPRING
+// 기본값: 한국 시간 기준 현재 연도 / 현재 정규학기 (9월부터 2학기)
+const DEFAULT_YEAR = koreaNow().year
+const DEFAULT_TERM = koreaNow().month >= 9 ? TERM.FALL : TERM.SPRING
 
 export default function TimetablePage() {
   const [year, setYear] = useState(DEFAULT_YEAR)

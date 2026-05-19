@@ -9,6 +9,8 @@
  * Render/Cloudflare 같은 서버 측 크롤링 불가능 → 정적 데이터 방식.
  */
 
+import { toKoreaDateParts, koreaNow } from '../utils/koreaTime'
+
 /**
  * 점심 메뉴 중 "오늘의 특별 메뉴" 추출
  *
@@ -57,18 +59,10 @@ function pickLunchHighlights(weeklyMeals, todayKey) {
  * @returns {Promise<{date, restaurants}>}
  */
 export async function fetchCafeterias(date) {
-  let targetMonth, targetDay
-  if (date instanceof Date) {
-    targetMonth = date.getMonth() + 1
-    targetDay = date.getDate()
-  } else if (typeof date === 'string' && /^\d{8}$/.test(date)) {
-    targetMonth = parseInt(date.slice(4, 6), 10)
-    targetDay = parseInt(date.slice(6, 8), 10)
-  } else {
-    const d = new Date()
-    targetMonth = d.getMonth() + 1
-    targetDay = d.getDate()
-  }
+  // 한국 시간(KST) 기준으로 날짜 계산 — 해외 사용자도 학교 기준 "오늘"을 봄
+  const parts = toKoreaDateParts(date)
+  const targetMonth = parts.month
+  const targetDay = parts.day
 
   const base = import.meta.env.BASE_URL || '/'
   const res = await fetch(`${base}data/cafeteria.json?t=${Date.now()}`)
@@ -93,7 +87,8 @@ export async function fetchCafeterias(date) {
     }
   })
 
-  const yyyy = new Date().getFullYear()
+  // 연도도 한국 기준으로 (해 바뀌는 자정 즈음 정합성)
+  const yyyy = koreaNow().year
   return {
     date:
       typeof date === 'string'

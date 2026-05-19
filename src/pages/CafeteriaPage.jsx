@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchCafeterias } from '../api/cafeteria'
+import { koreaToday, toKoreaDateParts, koreaDayOfWeek } from '../utils/koreaTime'
 
 const MEAL_INFO = [
   { key: 'breakfast', label: '조식', time: '07:30 — 09:30' },
@@ -18,7 +19,9 @@ const Icon = {
 }
 
 function formatDateLabel(date) {
-  return `${date.getMonth() + 1}월 ${date.getDate()}일 (${DAYS[date.getDay()]})`
+  // 한국 기준 요일/날짜 표시 (사용자가 해외에 있어도 한국 시간 기준)
+  const { month, day } = toKoreaDateParts(date)
+  return `${month}월 ${day}일 (${DAYS[koreaDayOfWeek(date)]})`
 }
 
 function addDays(date, n) {
@@ -28,7 +31,8 @@ function addDays(date, n) {
 }
 
 export default function CafeteriaPage() {
-  const [selectedDate, setSelectedDate] = useState(() => new Date())
+  // 초기값: 한국 기준 오늘
+  const [selectedDate, setSelectedDate] = useState(() => koreaToday())
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -45,12 +49,10 @@ export default function CafeteriaPage() {
   }, [selectedDate])
 
   const isToday = useMemo(() => {
-    const today = new Date()
-    return (
-      selectedDate.getFullYear() === today.getFullYear() &&
-      selectedDate.getMonth() === today.getMonth() &&
-      selectedDate.getDate() === today.getDate()
-    )
+    // 한국 기준 오늘과 비교
+    const sel = toKoreaDateParts(selectedDate)
+    const today = toKoreaDateParts(new Date())
+    return sel.year === today.year && sel.month === today.month && sel.day === today.day
   }, [selectedDate])
 
   return (
@@ -83,7 +85,7 @@ export default function CafeteriaPage() {
                 </button>
               </div>
               {!isToday && (
-                <button onClick={() => setSelectedDate(new Date())} className="uos-btn uos-btn--sm">
+                <button onClick={() => setSelectedDate(koreaToday())} className="uos-btn uos-btn--sm">
                   오늘로
                 </button>
               )}

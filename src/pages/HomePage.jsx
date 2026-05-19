@@ -6,6 +6,7 @@ import { fetchNoticeBoard } from '../api/notice'
 import { parseClassNm } from '../utils/parseClassNm'
 import { getSessionAvatar } from '../utils/randomAvatar'
 import { useUser, isNumericStudentId } from '../utils/user'
+import { koreaNow } from '../utils/koreaTime'
 import PortalLoginModal from '../components/PortalLoginModal'
 
 const STORAGE_KEY = 'uos-timetable-v1'
@@ -19,9 +20,10 @@ const PERIOD_TO_TIME = {
 const DAY_KEYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
+// 한국 시간 기준 — 모듈 import 단계에서 1회 계산 (페이지 로딩 시점의 KST)
 const TODAY_LABEL_FORMAT = (() => {
-  const d = new Date()
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${DAY_LABELS[d.getDay()]})`
+  const k = koreaNow()
+  return `${k.month}월 ${k.day}일 (${DAY_LABELS[k.dayOfWeek]})`
 })()
 
 /* ─── 아이콘 ────────────────────────────────────────────── */
@@ -52,8 +54,8 @@ function TodayTimetableCard() {
       if (!latest) return setTodayClasses([])
       const courses = saved[latest] || []
 
-      // 오늘 요일에 해당하는 강의만 필터
-      const today = DAY_KEYS[new Date().getDay()]
+      // 오늘 요일에 해당하는 강의만 필터 (한국 시간 기준)
+      const today = DAY_KEYS[koreaNow().dayOfWeek]
       const blocks = []
       courses.forEach((c) => {
         const parsedBlocks = parseClassNm(c.CLASS_NM)
@@ -148,8 +150,7 @@ function TodayCafeteriaCard() {
       .finally(() => setLoading(false))
   }, [])
 
-  // 점심(중식)이 있는 식당의 "오늘의 특별 메뉴" 추출
-  // (양식당의 매일 반복되는 까스류는 자동 제외, 그날만의 특별 메뉴를 다 보여줌)
+  // 점심(중식)이 있는 식당의 "오늘의 특별 메뉴" 추출 (한국 시간 기준)
   const lunchToday = useMemo(() => {
     if (!data?.restaurants) return []
     return data.restaurants
