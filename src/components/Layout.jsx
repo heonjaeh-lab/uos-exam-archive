@@ -25,7 +25,7 @@ const NAV_ITEMS = [
 
 const UTILITY_LINKS = [
   { label: '온라인 강의실', href: 'https://uclass.uos.ac.kr/' },
-  { label: '카피킬러',     href: 'https://www.copykiller.com/' },
+  { label: '카피킬러',     href: 'https://uos.copykiller.com/' },
   { label: 'UOS AI Chat', href: 'https://aichat.uos.ac.kr/dashboard/chat' },
 ]
 
