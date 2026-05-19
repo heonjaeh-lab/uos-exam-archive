@@ -36,6 +36,7 @@ const Icon = {
   upload: (p) => <SVG {...p}><path d="M12 20V8"/><path d="M7 13l5-5 5 5"/><path d="M5 4h14"/></SVG>,
   chevR: (p) => <SVG {...p}><polyline points="9 6 15 12 9 18"/></SVG>,
   eye: (p) => <SVG {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></SVG>,
+  book: (p) => <SVG {...p}><path d="M4 5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2V5z"/><path d="M8 7h6M8 11h6M8 15h4"/></SVG>,
 }
 
 /* ─── 오늘의 시간표 위젯 ─────────────────────────────────── */
@@ -541,12 +542,22 @@ export default function HomePage() {
                 자전 학생들을 위한 모든것!
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 10, paddingBottom: 6 }}>
-              <Link to="/timetable" className="uos-btn uos-btn--lg uos-btn--primary" style={{ textDecoration: 'none' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                paddingBottom: 6,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Link to="/timetable" className="uos-btn uos-btn--lg uos-btn--primary" style={{ textDecoration: 'none', flex: '1 1 auto', justifyContent: 'center', minWidth: 0 }}>
                 <Icon.cal /> 내 시간표
               </Link>
-              <Link to="/cafeteria" className="uos-btn uos-btn--lg" style={{ textDecoration: 'none' }}>
+              <Link to="/cafeteria" className="uos-btn uos-btn--lg" style={{ textDecoration: 'none', flex: '1 1 auto', justifyContent: 'center', minWidth: 0 }}>
                 <Icon.fire /> 오늘 학식
+              </Link>
+              <Link to="/archive" className="uos-btn uos-btn--lg" style={{ textDecoration: 'none', flex: '1 1 auto', justifyContent: 'center', minWidth: 0 }}>
+                <Icon.book /> 족보
               </Link>
             </div>
           </div>
