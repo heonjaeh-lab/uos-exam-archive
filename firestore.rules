@@ -20,6 +20,16 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // 공유된 시간표 — URL 알아야 볼 수 있음 (auto-id가 사실상 토큰)
+    // create: 누구나 가능 (공유 생성)
+    // read: 누구나 가능 (URL 받은 사람이 봄)
+    // update/delete: 금지 (공유 후 변경 안 됨)
+    match /shared_timetables/{shareId} {
+      allow create: if request.resource.data.keys().hasAll(['courses', 'createdAt']);
+      allow read: if true;
+      allow update, delete: if false;
+    }
+
     // 페이지 방문 기록 — 분석용
     // create: 누구나 가능 (방문 발생 시)
     // read: 관리자 UI에서만 조회 (UI 게이트)

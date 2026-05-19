@@ -226,6 +226,12 @@ export default function ProfilePage() {
             description="포털에서 최신 시간표를 새로 받아와요"
             onClick={() => navigate('/timetable')}
           />
+          <ActionRow
+            icon={<Icon.cal />}
+            label="학점 계산기"
+            description="시간표 강의에 성적 입력해서 자동 계산"
+            onClick={() => navigate('/gpa')}
+          />
           {confirmingReset ? (
             <ConfirmRow
               icon={<Icon.trash />}

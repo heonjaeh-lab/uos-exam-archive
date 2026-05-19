@@ -8,6 +8,7 @@ import { useUser, clearUser } from '../utils/user'
 import { loadTimetables, saveTimetables } from '../api/timetableStore'
 import { matchPortalCourses } from '../utils/portalCourseMatch'
 import { koreaNow } from '../utils/koreaTime'
+import { downloadAsImage, createSharedTimetable, buildShareUrl } from '../utils/timetableShare'
 
 const STORAGE_KEY = 'uos-timetable-v1'
 
@@ -21,6 +22,10 @@ export default function TimetablePage() {
   const [allCourses, setAllCourses] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [downloading, setDownloading] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [shareLink, setShareLink] = useState('')
+  const gridRef = useRef(null)
 
   // 시간표에 추가한 강의들 (학년/학기별로 분리 저장)
   const [savedTimetables, setSavedTimetables] = useState({})
@@ -147,6 +152,45 @@ export default function TimetablePage() {
       delete next[currentKey]
       return next
     })
+  }
+
+  // 시간표 이미지 다운로드
+  const handleDownloadImage = async () => {
+    if (!gridRef.current || downloading) return
+    setDownloading(true)
+    try {
+      const filename = `시간표_${year}-${term === TERM.SPRING ? '1' : '2'}학기.png`
+      await downloadAsImage(gridRef.current, filename)
+    } catch (err) {
+      window.alert('이미지 저장 실패: ' + err.message)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  // 시간표 공유 URL 생성
+  const handleShare = async () => {
+    if (!addedCourses.length || sharing) return
+    setSharing(true)
+    try {
+      const shareId = await createSharedTimetable({
+        ownerName: user?.name || user?.studentId || '익명',
+        semesterKey: currentKey,
+        courses: addedCourses,
+      })
+      const url = buildShareUrl(shareId)
+      setShareLink(url)
+      // 클립보드에 자동 복사 시도
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        // 권한 없으면 그냥 표시만
+      }
+    } catch (err) {
+      window.alert('공유 링크 생성 실패: ' + err.message)
+    } finally {
+      setSharing(false)
+    }
   }
 
   // 포털에서 시간표 자동 가져오기 결과 처리
@@ -347,7 +391,45 @@ export default function TimetablePage() {
                 </p>
               </div>
             ) : (
-              <TimetableGrid courses={addedCourses} onRemove={handleRemove} />
+              <div ref={gridRef} style={{ background: '#fff' }}>
+                <TimetableGrid courses={addedCourses} onRemove={handleRemove} />
+              </div>
+            )}
+            {/* 시간표 액션: 이미지 다운로드 + 공유 (강의 있을 때만) */}
+            {addedCourses.length > 0 && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleDownloadImage}
+                  disabled={downloading}
+                  className="uos-btn"
+                  style={{ flex: 1, minWidth: 140, justifyContent: 'center' }}
+                >
+                  {downloading ? '이미지 만드는 중...' : '🖼️ 이미지로 저장'}
+                </button>
+                <button
+                  onClick={handleShare}
+                  disabled={sharing}
+                  className="uos-btn uos-btn--primary"
+                  style={{ flex: 1, minWidth: 140, justifyContent: 'center' }}
+                >
+                  {sharing ? '공유 링크 만드는 중...' : '🔗 친구에게 공유'}
+                </button>
+              </div>
+            )}
+            {shareLink && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: '12px 14px',
+                  background: 'var(--c-primary-50)',
+                  border: '1px solid var(--c-primary-100, #cce5ff)',
+                  borderRadius: 10,
+                  fontSize: 12.5,
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: 6 }}>공유 링크 생성됨 (클립보드 복사됨)</div>
+                <div style={{ wordBreak: 'break-all', color: 'var(--c-text-3)' }}>{shareLink}</div>
+              </div>
             )}
           </div>
 

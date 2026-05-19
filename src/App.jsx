@@ -10,6 +10,8 @@ import ArchivePage from './pages/ArchivePage'
 import ExamDetailPage from './pages/ExamDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
+import GpaPage from './pages/GpaPage'
+import ShareViewPage from './pages/ShareViewPage'
 
 function App() {
   return (
@@ -24,6 +26,8 @@ function App() {
         <Route path="/subject/:subjectName" element={<SubjectPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/gpa" element={<GpaPage />} />
+        <Route path="/share/:shareId" element={<ShareViewPage />} />
         <Route path="/about" element={<AboutPage />} />
       </Routes>
     </Layout>
