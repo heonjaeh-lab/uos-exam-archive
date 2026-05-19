@@ -147,26 +147,24 @@ function TodayCafeteriaCard() {
       .finally(() => setLoading(false))
   }, [])
 
-  // 점심(중식)이 있는 식당만 추출 + 날짜 기반으로 매일 다른 메뉴 1개 선택
-  // (양식당처럼 "고구마치즈돈까스"가 매일 첫 줄에 와도 다른 메뉴가 노출되도록)
+  // 점심(중식)이 있는 식당의 "오늘의 특별 메뉴" 추출
+  // (양식당의 매일 반복되는 까스류는 자동 제외, 그날만의 특별 메뉴를 다 보여줌)
   const lunchToday = useMemo(() => {
     if (!data?.restaurants) return []
-    const today = new Date()
-    const daySeed = today.getDate() + today.getMonth() * 31 // 매일 다른 값
     return data.restaurants
       .filter((r) => r.meals?.lunch)
       .map((r) => {
-        const items = r.meals.lunch
-          .split(/[·•\n]/)
-          .map((s) => s.trim())
-          .filter(Boolean)
-        // 식당별로 다른 인덱스 + 매일 회전
-        const seed = daySeed + (r.code ? parseInt(r.code, 10) : 0)
-        const idx = items.length > 0 ? seed % items.length : 0
-        const menu = (items[idx] || items[0] || '').slice(0, 30)
+        const highlights =
+          Array.isArray(r.lunchHighlights) && r.lunchHighlights.length > 0
+            ? r.lunchHighlights
+            : r.meals.lunch
+                .split('\n')
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .slice(0, 4)
         return {
           name: r.shortName || r.name,
-          menu,
+          highlights,
           code: r.code,
         }
       })
@@ -221,12 +219,22 @@ function TodayCafeteriaCard() {
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600 }}>{r.name}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--c-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {r.menu}
+                <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 2 }}>{r.name}</div>
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    color: 'var(--c-text-3)',
+                    lineHeight: 1.45,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {r.highlights.join(' · ')}
                 </div>
               </div>
-              <span className="uos-tag uos-tag--primary">중식</span>
+              <span className="uos-tag uos-tag--primary" style={{ flexShrink: 0 }}>중식</span>
             </Link>
           ))
         )}
