@@ -243,7 +243,7 @@ export default function PortalLoginModal({ open, onClose, onSuccess }) {
                   type="text"
                   value={userId}
                   onChange={(e) => setUserId(e.target.value.trim())}
-                  placeholder="학번 또는 이메일"
+                  placeholder="포털 아이디"
                   autoComplete="username"
                   disabled={loading}
                 />

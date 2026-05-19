@@ -417,9 +417,14 @@ function MyInfoCard({ user }) {
             </div>
           ))}
         </div>
-        <Link to="/timetable" className="uos-btn" style={{ width: '100%', marginTop: 12, textDecoration: 'none' }}>
-          시간표 보기 <Icon.chevR cls="uos-icon--sm" />
-        </Link>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <Link to="/timetable" className="uos-btn" style={{ flex: 1, textDecoration: 'none', justifyContent: 'center' }}>
+            시간표 <Icon.chevR cls="uos-icon--sm" />
+          </Link>
+          <Link to="/profile" className="uos-btn uos-btn--primary" style={{ flex: 1, textDecoration: 'none', justifyContent: 'center' }}>
+            내 프로필 <Icon.chevR cls="uos-icon--sm" />
+          </Link>
+        </div>
       </div>
     </section>
   )

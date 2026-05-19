@@ -129,7 +129,25 @@ function TopBar({ activePath, onOpenMobileNav }) {
             <Icon.bell />
           </button>
           {user ? (
-            <div className="uos-desktop-only" style={{ alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--c-line)', marginLeft: 4 }}>
+            <Link
+              to="/profile"
+              className="uos-desktop-only"
+              style={{
+                alignItems: 'center',
+                gap: 8,
+                paddingLeft: 8,
+                borderLeft: '1px solid var(--c-line)',
+                marginLeft: 4,
+                textDecoration: 'none',
+                color: 'inherit',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: 8,
+                transition: 'background .12s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--c-bg-soft)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
               <div
                 className="uos-avatar"
                 style={{
@@ -147,7 +165,7 @@ function TopBar({ activePath, onOpenMobileNav }) {
                     : '자유전공학부'}
                 </div>
               </div>
-            </div>
+            </Link>
           ) : null}
         </div>
       </div>
@@ -157,7 +175,9 @@ function TopBar({ activePath, onOpenMobileNav }) {
 
 /* ─── Mobile Nav Drawer ──────────────────────────────────────── */
 function MobileNav({ open, onClose, activePath }) {
+  const user = useUser()
   if (!open) return null
+  const items = user ? [...NAV_ITEMS, { to: '/profile', label: '내 프로필' }] : NAV_ITEMS
   return (
     <div className="fixed inset-0 z-50 md:hidden" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
@@ -172,7 +192,7 @@ function MobileNav({ open, onClose, activePath }) {
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-2">
-          {NAV_ITEMS.map((item) => {
+          {items.map((item) => {
             const isActive = item.to === activePath
             return (
               <Link
