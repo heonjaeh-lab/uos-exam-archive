@@ -124,6 +124,11 @@ async function refreshToken() {
 
 /**
  * React hook
+ *
+ * 주의: useEffect 의존성에 user 포함 X.
+ * refreshToken()이 saveUser()를 호출하고 그게 'uos-user-changed' 이벤트를
+ * 발생시켜 setUser 트리거 → user 변경 → effect 재실행 → 무한 갱신 루프 발생.
+ * effect는 마운트 1회만 실행되도록 의존성 빈 배열로 고정.
  */
 export function useUser() {
   const [user, setUser] = useState(() => getStoredUser())
@@ -132,18 +137,14 @@ export function useUser() {
     const handler = (e) => setUser(e.detail)
     window.addEventListener('uos-user-changed', handler)
 
-    // 사이트 방문 시 토큰 자동 갱신 (영구 로그인 유지)
-    // 백엔드가 새 1년짜리 토큰 발급 → 매번 방문할 때마다 갱신
-    if (user) {
-      refreshToken()
-    }
+    // 마운트 시 1회만 토큰 갱신 (영구 로그인용)
+    const stored = getStoredUser()
+    if (stored) refreshToken()
 
-    // 6시간마다 다시 갱신 (사용자가 사이트를 오래 열어둔 경우 대비)
+    // 6시간마다 다시 갱신 (사이트 오래 열어둔 경우)
     const interval = setInterval(() => {
       const current = getStoredUser()
-      if (!current && user) {
-        setUser(null)
-      } else if (current) {
+      if (current) {
         refreshToken()
       }
     }, 6 * 60 * 60 * 1000)
@@ -152,7 +153,8 @@ export function useUser() {
       window.removeEventListener('uos-user-changed', handler)
       clearInterval(interval)
     }
-  }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return user
 }

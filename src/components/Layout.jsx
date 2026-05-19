@@ -286,11 +286,15 @@ export default function Layout({ children }) {
   const user = useUser()
 
   // 페이지 방문 자동 기록 (로그인된 사용자만, 관리자 본인 활동은 제외)
+  // user 객체 전체 대신 studentId만 의존 — 토큰 갱신 시 객체 ref가 바뀌어도
+  // 같은 학번이면 중복 발화하지 않도록.
+  const userIdForLog = user?.studentId
+  const adminFlag = isAdmin(user)
   useEffect(() => {
-    if (!user?.studentId) return
-    if (isAdmin(user)) return // 관리자 본인 활동은 통계에서 제외
-    logVisit({ studentId: user.studentId, path: location.pathname })
-  }, [user, location.pathname])
+    if (!userIdForLog) return
+    if (adminFlag) return
+    logVisit({ studentId: userIdForLog, path: location.pathname })
+  }, [userIdForLog, adminFlag, location.pathname])
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--c-bg-soft)' }}>

@@ -42,8 +42,9 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  const isUserAdmin = isAdmin(user)
   useEffect(() => {
-    if (!isAdmin(user)) return
+    if (!isUserAdmin) return
     setLoading(true)
     Promise.all([
       fetchTodayStats(),
@@ -59,7 +60,9 @@ export default function AdminPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [user, refreshKey])
+    // user 객체 전체가 아니라 isAdmin 여부만 의존 — refreshToken으로 user 객체가
+    // 갱신될 때마다 4개 쿼리 다시 날리는 깜박임 방지
+  }, [isUserAdmin, refreshKey])
 
   // 비관리자 접근 차단
   if (!isAdmin(user)) {
