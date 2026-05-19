@@ -280,16 +280,29 @@ export async function loginAndFetchTimetable(userId, password) {
       }
     })
 
-    // === 1. list.do 응답 가로채기 등록 ===
+    // === 1. WISE 응답 가로채기 — list.do 외에도 시간표 데이터 가능성 있는 모든 JSON 응답 캡처 ===
+    // user 발견: 사이드바에 "수강신청확인서" 메뉴 있음 (한글) + index.do에 시간표 위젯 자체가 있음
+    // → 메뉴 매칭에 의존하지 않고, WISE 진입 직후 호출되는 모든 .do JSON 응답을 모아서
+    //   강의 데이터처럼 보이는 응답을 직접 찾는다.
+    const allCaptured = []
     page.on('response', async (response) => {
       const url = response.url()
-      if (url.includes('/SucrTlsnAplyCnfmPrt/list.do')) {
-        try {
-          const text = await response.text()
+      // wise/sso 도메인의 .do 응답만 캡처
+      if (!url.includes('uos.ac.kr')) return
+      if (!url.includes('.do')) return
+      try {
+        const text = await response.text()
+        if (!text) return
+        // JSON 모양만 (HTML/XML 제외)
+        const trimmed = text.trim()
+        if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return
+        allCaptured.push({ url, body: text })
+        // 기존 호환: list.do는 capturedResponses에도 push
+        if (url.includes('/SucrTlsnAplyCnfmPrt/list.do')) {
           capturedResponses.push({ url, body: text })
-        } catch {
-          // 응답 본문 읽기 실패 무시
         }
+      } catch {
+        // 응답 본문 읽기 실패 무시
       }
     })
 
@@ -477,11 +490,49 @@ export async function loginAndFetchTimetable(userId, password) {
       }
     }
 
-    // === 7. WISE 메인 페이지 로딩 대기 ===
+    // === 7. WISE 메인 페이지 로딩 대기 + 위젯 데이터 자동 수집 ===
+    // WISE index.do는 진입 직후 사용자 시간표 위젯을 자동 로드함.
+    // 메뉴를 클릭하지 않고도 위젯이 호출한 API에 시간표 JSON이 들어옴.
     await page
       .waitForSelector('a, .cl-sidenavigation-item, [class*="menu"]', { timeout: 15000 })
       .catch(() => {})
-    await page.waitForNetworkIdle({ idleTime: 1000, timeout: 12000 }).catch(() => {})
+    await page.waitForNetworkIdle({ idleTime: 1500, timeout: 15000 }).catch(() => {})
+
+    // === 7.5. 캡처된 응답에서 강의 데이터 찾기 ===
+    // 사이드바 메뉴 클릭 없이도 위젯이 시간표 API를 호출했을 가능성.
+    // 강의 데이터 시그니처(SUBJECT/SUBJ/TLSN/COURSE 키)가 있는 응답이면 바로 사용.
+    function isCourseResponse(text) {
+      try {
+        const parsed = JSON.parse(text)
+        const rows = extractRows(parsed)
+        if (rows.length === 0) return false
+        const sample = rows[0]
+        if (!sample || typeof sample !== 'object') return false
+        const keys = Object.keys(sample).map((k) => k.toUpperCase())
+        const hasCourseKey = keys.some((k) =>
+          /SUBJ|SBJT|COURSE|TLSN|LSN|TIMETABLE|CRT/.test(k),
+        )
+        const hasSubjectName = keys.some((k) => /SUBJECT_NM|SUBJ_NM|COURSE_NM|SBJT_NM/.test(k))
+        return hasCourseKey && (hasSubjectName || rows.length >= 2)
+      } catch {
+        return false
+      }
+    }
+
+    // 캡처된 응답 중 강의 데이터처럼 보이는 거 찾기
+    let earlyTimetable = null
+    for (const cap of allCaptured) {
+      if (isCourseResponse(cap.body)) {
+        earlyTimetable = cap
+        capturedResponses.push(cap) // 호환
+        break
+      }
+    }
+
+    if (earlyTimetable) {
+      // 메뉴 클릭 없이 바로 처리 가능 — 아래 흐름(메뉴 클릭 → list.do 대기)을 건너뛴다.
+      // capturedResponses에 이미 들어가있어서 === 10. JSON 파싱 단계로 fall through.
+    }
 
     // === 7.5. WISE 한국어 전환 시도 ===
     // 진단 결과 사용자 계정이 영문 모드 → 한국어로 전환하면 한글 메뉴 텍스트로 매칭 가능.
@@ -510,10 +561,16 @@ export async function loginAndFetchTimetable(userId, password) {
       await page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {})
     }
 
-    // === 8. "수강신청확인서" 메뉴 찾기 + 클릭 ===
+    // === 8. "수강신청확인서" 메뉴 찾기 + 클릭 (위젯에서 못 얻은 경우만) ===
+    // earlyTimetable이 이미 있으면 메뉴 클릭 단계 전체 스킵 → 10. JSON 파싱으로 직행
+    if (!earlyTimetable) {
     // 한국어/영문 후보 모두 시도 (한국어 전환 실패 대비)
     const targetCandidates = [
       '수강신청확인서',
+      '강의시간표',
+      '시간표',
+      '내 시간표',
+      '수강신청',
       'Course Registration Confirmation',
       'Course registration confirmation',
       'Confirmation of Course Registration',
@@ -521,6 +578,9 @@ export async function loginAndFetchTimetable(userId, password) {
       'Course registration statement',
       'Course Registration Check',
       'Check Course Registration',
+      'Class Schedule',
+      'Lecture Schedule',
+      'My Schedule',
     ]
 
     async function findAndClickMenu() {
@@ -626,11 +686,24 @@ export async function loginAndFetchTimetable(userId, password) {
         debug: { stage: 'findMenu', ...menuDebug },
       }
     }
+    } // end if (!earlyTimetable) — 메뉴 클릭 스킵 블록 종료
 
     // === 9. list.do 응답 도착 대기 (최대 15초) ===
+    // earlyTimetable이 이미 있으면 capturedResponses에 들어있어서 즉시 통과
     const start = Date.now()
     while (capturedResponses.length === 0 && Date.now() - start < 15000) {
       await new Promise((r) => setTimeout(r, 500))
+    }
+
+    // list.do가 안 왔어도 allCaptured에서 강의 데이터 응답을 찾아본다
+    // (강의시간표 메뉴 등 다른 엔드포인트가 호출됐을 수 있음)
+    if (capturedResponses.length === 0) {
+      for (const cap of allCaptured) {
+        if (isCourseResponse(cap.body)) {
+          capturedResponses.push(cap)
+          break
+        }
+      }
     }
 
     if (capturedResponses.length === 0) {
