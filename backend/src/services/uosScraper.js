@@ -483,42 +483,94 @@ export async function loginAndFetchTimetable(userId, password) {
       .catch(() => {})
     await page.waitForNetworkIdle({ idleTime: 1000, timeout: 12000 }).catch(() => {})
 
+    // === 7.5. WISE 한국어 전환 시도 ===
+    // 진단 결과 사용자 계정이 영문 모드 → 한국어로 전환하면 한글 메뉴 텍스트로 매칭 가능.
+    // "KOR" / "한국어" 텍스트 가진 링크 클릭. 페이지 새로고침될 수 있어 대기.
+    const switchedToKorean = await page
+      .evaluate(() => {
+        const all = Array.from(
+          document.querySelectorAll('a, button, span, li, [role="button"]'),
+        )
+        const koLink = all.find((el) => {
+          const t = (el.innerText || el.textContent || '').trim()
+          return /^(한국어|한글|KOR|KO|Korean|국문)$/i.test(t)
+        })
+        if (koLink) {
+          koLink.click()
+          return true
+        }
+        return false
+      })
+      .catch(() => false)
+
+    if (switchedToKorean) {
+      await page
+        .waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 })
+        .catch(() => {})
+      await page.waitForNetworkIdle({ idleTime: 1000, timeout: 10000 }).catch(() => {})
+    }
+
     // === 8. "수강신청확인서" 메뉴 찾기 + 클릭 ===
-    // WISE는 eXBuilder 기반이라 메뉴가 늦게 로드되거나 iframe/shadow DOM에 있을 수 있음.
-    // 최대 20초 동안 폴링 + 모든 frame 검색 + 부분 텍스트 매칭까지 시도.
-    const targetText = '수강신청확인서'
+    // 한국어/영문 후보 모두 시도 (한국어 전환 실패 대비)
+    const targetCandidates = [
+      '수강신청확인서',
+      'Course Registration Confirmation',
+      'Course registration confirmation',
+      'Confirmation of Course Registration',
+      'Course Registration Statement',
+      'Course registration statement',
+      'Course Registration Check',
+      'Check Course Registration',
+    ]
 
     async function findAndClickMenu() {
       // 1) 모든 frame을 순회하며 텍스트 매칭 시도
       for (const frame of page.frames()) {
         try {
-          const clicked = await frame.evaluate((target) => {
-            const normalize = (v) => String(v || '').replace(/\s+/g, '')
+          const clicked = await frame.evaluate((targets) => {
+            const normalize = (v) => String(v || '').replace(/\s+/g, '').toLowerCase()
             const candidates = Array.from(
               document.querySelectorAll(
                 'a, button, span, div, li, td, [role="button"], [role="treeitem"], [role="menuitem"]',
               ),
             )
-            // 정확 매칭 우선
-            let item = candidates.find(
-              (el) => normalize(el.innerText || el.textContent) === target,
-            )
-            // 부분 매칭 (다른 텍스트와 함께 있을 가능성 — 예: "수강신청확인서 ›")
-            if (!item) {
-              item = candidates.find((el) => {
-                const t = normalize(el.innerText || el.textContent)
-                return t.includes(target) && t.length < target.length + 20
-              })
+
+            // 정확 매칭 (대소문자 무시, 공백 무시) 우선
+            for (const target of targets) {
+              const targetNorm = normalize(target)
+              const exact = candidates.find(
+                (el) => normalize(el.innerText || el.textContent) === targetNorm,
+              )
+              if (exact) {
+                const clickable =
+                  exact.closest(
+                    'a, button, [role="button"], [role="treeitem"], [role="menuitem"], [onclick], li, tr',
+                  ) || exact
+                clickable.scrollIntoView({ block: 'center' })
+                clickable.click()
+                return true
+              }
             }
-            if (!item) return false
-            const clickable =
-              item.closest(
-                'a, button, [role="button"], [role="treeitem"], [role="menuitem"], [onclick], li, tr',
-              ) || item
-            clickable.scrollIntoView({ block: 'center' })
-            clickable.click()
-            return true
-          }, targetText)
+
+            // 부분 매칭 (정확 매칭 실패 시)
+            for (const target of targets) {
+              const targetNorm = normalize(target)
+              const partial = candidates.find((el) => {
+                const t = normalize(el.innerText || el.textContent)
+                return t.includes(targetNorm) && t.length < targetNorm.length + 30
+              })
+              if (partial) {
+                const clickable =
+                  partial.closest(
+                    'a, button, [role="button"], [role="treeitem"], [role="menuitem"], [onclick], li, tr',
+                  ) || partial
+                clickable.scrollIntoView({ block: 'center' })
+                clickable.click()
+                return true
+              }
+            }
+            return false
+          }, targetCandidates)
           if (clicked) return true
         } catch {
           // frame 접근 권한 없으면 패스
@@ -546,9 +598,13 @@ export async function loginAndFetchTimetable(userId, password) {
             ),
           )
             .map((el) => (el.innerText || el.textContent || '').trim())
-            .filter((t) => t && t.length < 50)
-            .slice(0, 60)
+            .filter((t) => t && t.length < 60)
+            .slice(0, 120) // 더 많은 메뉴 확보
         const main = grab(document)
+        // "course" 또는 "registration" 또는 "수강" 포함된 메뉴만 별도 필터
+        const courseRelated = main.filter((t) =>
+          /course|registration|수강|신청|확인/i.test(t),
+        )
         const frames = []
         Array.from(document.querySelectorAll('iframe, frame')).forEach((f) => {
           frames.push({ src: f.src || null, id: f.id || null })
@@ -557,6 +613,7 @@ export async function loginAndFetchTimetable(userId, password) {
           url: location.href,
           title: document.title,
           menuTexts: main,
+          courseRelated,
           frameCount: frames.length,
           frames,
         }
