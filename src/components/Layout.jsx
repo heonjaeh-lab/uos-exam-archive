@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { to: '/cafeteria', label: '학식' },
   { to: '/timetable', label: '시간표' },
   { to: '/notice', label: '공지' },
+  { to: '/registration', label: '수강신청' },
 ]
 
 const UTILITY_LINKS = [

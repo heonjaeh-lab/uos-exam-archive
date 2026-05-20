@@ -12,6 +12,7 @@ import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
 import GpaPage from './pages/GpaPage'
 import ShareViewPage from './pages/ShareViewPage'
+import RegistrationHelperPage from './pages/RegistrationHelperPage'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/gpa" element={<GpaPage />} />
         <Route path="/share/:shareId" element={<ShareViewPage />} />
+        <Route path="/registration" element={<RegistrationHelperPage />} />
         <Route path="/about" element={<AboutPage />} />
       </Routes>
     </Layout>

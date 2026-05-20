@@ -66,6 +66,9 @@ export default {
         response = await handleCafeteria(url.searchParams)
       } else if (url.pathname === '/api/notice') {
         response = await handleNotice(url.searchParams)
+      } else if (url.pathname === '/api/server-time') {
+        // 시립대 수강신청 서버 시간 (sugang.uos.ac.kr 의 Date 헤더)
+        response = await handleServerTime()
       } else if (url.pathname.startsWith('/api/uos/')) {
         // 시립대 OpenAPI 프록시: /api/uos/<endpoint>?<params>
         // 예: /api/uos/ApiTimeTable/list.do?apiKey=...&year=2026&term=10
@@ -130,6 +133,44 @@ async function fetchHtml(url) {
   })
   if (!res.ok) throw new Error(`Fetch 실패: ${res.status}`)
   return res.text()
+}
+
+/* ───── 시립대 수강신청 서버 시간 ───── */
+// sugang.uos.ac.kr 의 HTTP Date 응답 헤더로 시립대 서버 시간 동기화.
+// 네이비즘처럼 KST 기준 시립대 정확한 시간을 보여줄 수 있게 됨.
+async function handleServerTime() {
+  const targets = [
+    'https://sugang.uos.ac.kr/',
+    'https://wise.uos.ac.kr/index.do',
+  ]
+  for (const target of targets) {
+    try {
+      // HEAD 요청으로 빠르게 (본문 안 받음)
+      const startedAt = Date.now()
+      const res = await fetch(target, {
+        method: 'HEAD',
+        headers: { 'User-Agent': USER_AGENT },
+        cf: { cacheTtl: 0, cacheEverything: false },
+      })
+      const elapsedMs = Date.now() - startedAt
+      const serverDate = res.headers.get('date')
+      if (!serverDate) continue
+      const serverMs = new Date(serverDate).getTime()
+      if (Number.isNaN(serverMs)) continue
+      // 응답 받은 시점이 서버 Date에 round-trip 절반 만큼 지난 후
+      const correctedServerMs = serverMs + Math.floor(elapsedMs / 2)
+      return json({
+        source: target,
+        serverTime: new Date(correctedServerMs).toISOString(),
+        serverTimeMs: correctedServerMs,
+        responseTimeMs: elapsedMs,
+        rawDateHeader: serverDate,
+      })
+    } catch {
+      // 다음 후보 시도
+    }
+  }
+  return json({ error: '시립대 서버 시간을 가져오지 못했어요' }, 502)
 }
 
 /* ───── 시립대 OpenAPI 프록시 ───── */
