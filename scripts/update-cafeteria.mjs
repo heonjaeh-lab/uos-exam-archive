@@ -257,8 +257,14 @@ async function main() {
     )
     execSync('git push', { cwd: ROOT })
     console.log('🚀 Git push 완료')
+
+    // GitHub Pages는 gh-pages 브랜치에서 서빙 → npm run deploy로 dist 빌드 + 푸시
+    // 안 하면 실제 사이트에 새 학식 데이터가 반영 안 됨.
+    console.log('🏗️  GitHub Pages 빌드 + 배포...')
+    execSync('npm run deploy', { cwd: ROOT, stdio: 'inherit' })
+    console.log('✅ GitHub Pages 배포 완료')
   } catch (err) {
-    console.error('⚠️ Git push 실패:', err.message)
+    console.error('⚠️ Git push/배포 실패:', err.message)
     process.exit(1)
   }
 }
