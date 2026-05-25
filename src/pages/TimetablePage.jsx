@@ -9,6 +9,7 @@ import { loadTimetables, saveTimetables } from '../api/timetableStore'
 import { matchPortalCourses } from '../utils/portalCourseMatch'
 import { koreaNow } from '../utils/koreaTime'
 import { downloadAsImage, createSharedTimetable, buildShareUrl } from '../utils/timetableShare'
+import { pingBackend } from '../api/uosPortal'
 
 const STORAGE_KEY = 'uos-timetable-v1'
 
@@ -41,6 +42,12 @@ export default function TimetablePage() {
 
   const currentKey = `${year}-${term}`
   const addedCourses = savedTimetables[currentKey] || []
+
+  // 시간표 페이지 진입 시 백엔드 한 번 더 깨우기.
+  // 사용자가 곧 "내 시간표 가져오기" 버튼을 누를 가능성이 높음 — 모달 열 때까지 기다리면 늦음.
+  useEffect(() => {
+    pingBackend().catch(() => {})
+  }, [])
 
   // 페이지 진입 시 시간표 로드
   // - 로그인 사용자: Firestore에서 + localStorage fallback

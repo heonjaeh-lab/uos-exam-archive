@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
@@ -13,8 +14,16 @@ import AdminPage from './pages/AdminPage'
 import GpaPage from './pages/GpaPage'
 import ShareViewPage from './pages/ShareViewPage'
 import RegistrationHelperPage from './pages/RegistrationHelperPage'
+import { pingBackend } from './api/uosPortal'
 
 function App() {
+  // 사이트 진입 직후 백엔드 깨우기 (Render 무료 플랜 cold start 대비).
+  // 로그인 모달은 열 때만 깨워서 5-10초밖에 못 줄였음.
+  // 사이트 진입 시점에 미리 깨우면 사용자가 메뉴 둘러보는 동안 warmup 완료.
+  useEffect(() => {
+    pingBackend().catch(() => {})
+  }, [])
+
   return (
     <Layout>
       <Routes>
