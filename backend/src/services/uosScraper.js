@@ -242,9 +242,13 @@ export async function loginAndFetchTimetable(userId, password) {
 
   let browser = null
   const capturedResponses = []
+  const tStart = Date.now()
+  const stage = (label) => console.log(`[timing] +${((Date.now() - tStart) / 1000).toFixed(2)}s ${label}`)
 
   try {
+    stage('start')
     browser = await puppeteer.launch(PUPPETEER_OPTIONS)
+    stage('puppeteer launched')
     const page = await browser.newPage()
     await page.setUserAgent(USER_AGENT)
     await page.setViewport({ width: 1400, height: 900 })
@@ -314,11 +318,13 @@ export async function loginAndFetchTimetable(userId, password) {
       waitUntil: 'domcontentloaded',
       timeout: 20000, // 30s → 20s
     })
+    stage('SSO page DOM loaded')
 
     // 학번/비밀번호 입력 필드 대기 — 보통 1-3초 안에 나타남
     try {
       await page.waitForSelector('#user_id', { timeout: 15000 }) // 30s → 15s
       await page.waitForSelector('#user_password', { timeout: 5000 }) // 15s → 5s
+      stage('SSO login form ready')
     } catch {
       const diag = await collectPageState(page)
       return {
@@ -425,6 +431,7 @@ export async function loginAndFetchTimetable(userId, password) {
     }
 
     await page.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => {}) // 10s → 5s
+    stage('SSO submit + nav done')
 
     // === 5. 로그인 결과 대기 + WISE 진입 시도 ===
     const postLoginUrl = page.url()
@@ -435,6 +442,7 @@ export async function loginAndFetchTimetable(userId, password) {
       }).catch(() => {})
       await page.waitForNetworkIdle({ idleTime: 500, timeout: 5000 }).catch(() => {})
     }
+    stage('WISE page reached')
 
     // === 6. 로그인 실패 감지 ===
     const finalUrl = page.url()
@@ -523,6 +531,7 @@ export async function loginAndFetchTimetable(userId, password) {
     if (earlyTimetable) {
       // 메뉴 클릭 없이 바로 처리 가능 — 아래 흐름(메뉴 클릭 → list.do 대기)을 건너뛴다.
       // capturedResponses에 이미 들어가있어서 === 10. JSON 파싱 단계로 fall through.
+      stage('early timetable captured (skip menu click)')
     }
 
     // === 7.5. WISE 한국어 전환 시도 (earlyTimetable 없을 때만) ===
@@ -680,11 +689,14 @@ export async function loginAndFetchTimetable(userId, password) {
     }
     } // end if (!earlyTimetable) — 메뉴 클릭 스킵 블록 종료
 
+    stage('menu clicked')
+
     // === 9. list.do 응답 도착 대기 (최대 6초 — DOM 스크랩 폴백 있음) ===
     const start = Date.now()
     while (capturedResponses.length === 0 && Date.now() - start < 6000) { // 15s → 6s
       await new Promise((r) => setTimeout(r, 300))
     }
+    stage(`list.do wait done (got ${capturedResponses.length} responses)`)
 
     // list.do가 안 왔어도 allCaptured에서 강의 데이터 응답을 찾아본다
     // (강의시간표 메뉴 등 다른 엔드포인트가 호출됐을 수 있음)
@@ -868,6 +880,7 @@ export async function loginAndFetchTimetable(userId, password) {
       .map((course) => course.normalized)
       .filter((course) => course.subjectNo || course.subjectNm)
 
+    stage(`done (success: ${courses.length} courses)`)
     return {
       success: true,
       data: {
@@ -879,6 +892,7 @@ export async function loginAndFetchTimetable(userId, password) {
           rowCount: rows.length,
           sample: rows[0] || null,
           normalizedSample: courses[0] || null,
+          totalElapsedMs: Date.now() - tStart,
         },
       },
     }

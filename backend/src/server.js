@@ -65,6 +65,17 @@ app.use(
 // 페이로드 크기 제한: 비밀번호 + 학번 + 약간 ≤ 1KB로 충분, 여유 두고 10KB
 app.use(express.json({ limit: '10kb' }))
 
+// 모든 요청 access log (비밀번호 등 body는 절대 로깅 안 함)
+app.use((req, res, next) => {
+  const start = Date.now()
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown'
+  res.on('finish', () => {
+    const elapsed = Date.now() - start
+    console.log(`[req] ${req.method} ${req.url} → ${res.statusCode} (${elapsed}ms) from ${ip}`)
+  })
+  next()
+})
+
 // 헬스체크 (Render가 깨우는 용도)
 app.get('/', (req, res) => {
   res.json({
